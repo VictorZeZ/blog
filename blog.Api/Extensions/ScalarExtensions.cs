@@ -11,7 +11,7 @@ namespace blog.Api.Extensions
             app.MapScalarApiReference(options =>
             {
                 options
-                    .WithTitle("Vetowo API")
+                    .WithTitle("blog API")
                     .WithTheme(ScalarTheme.DeepSpace)
                     .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch);
             });
