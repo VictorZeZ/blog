@@ -10,6 +10,7 @@ namespace blog.Domain.Posts.Entities
     public class Post : Entity<PostId>
     {
         public string Title { get; private set; }
+        public string? TitleImageUrl { get; private set; }
         public string Content { get; private set; }
         public string Slug { get; private set; }
         public List<string> Tags { get; private set; } = [];
@@ -22,9 +23,10 @@ namespace blog.Domain.Posts.Entities
 
         public int ViewCount { get; private set; }
 
-        public Post(string title, string content, List<string> tags, User author) : base(PostId.New())
+        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author) : base(PostId.New())
         {
             Title = title;
+            TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
             AuthorId = author.Id;
