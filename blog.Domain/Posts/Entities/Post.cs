@@ -4,6 +4,7 @@ using blog.Domain.Posts.Types;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Types;
+using NpgsqlTypes;
 
 namespace blog.Domain.Posts.Entities
 {
@@ -19,9 +20,11 @@ namespace blog.Domain.Posts.Entities
         public UserId AuthorId { get; private set; }
         public User Author { get; private set; }
 
-        private Post() : base(PostId.Empty) { }
-
         public int ViewCount { get; private set; }
+
+        public NpgsqlTsVector SearchVector { get; private set; } = null!;
+
+        private Post() : base(PostId.Empty) { }
 
         public Post(string title, string? titleImageUrl, string content, List<string> tags, User author) : base(PostId.New())
         {
