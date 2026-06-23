@@ -3,7 +3,6 @@ using blog.Domain.Posts.Types;
 using blog.Domain.Users.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System.Text.Json;
 
 namespace blog.Infrastructure.Persistence.Configurations
 {
@@ -38,11 +37,11 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .IsUnique();
 
             builder.Property(x => x.Tags)
-                .HasColumnType("jsonb")
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null)!)
+                .HasColumnType("text[]")
                 .IsRequired();
+
+            builder.HasIndex(x => x.Tags)
+                .HasMethod("GIN");
 
             builder.Property(x => x.Status)
                 .HasConversion<int>()
