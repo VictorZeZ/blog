@@ -15,6 +15,9 @@ namespace blog.Application.Users.Commands.Login
             if (user is null)
                 throw new NotFoundException("User", request.Email);
 
+            if (user.IsDeleted)
+                throw new UnavailableException("Login");
+
             var isPasswordValid = passwordHasher.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid)
                 throw new ValidationException("Password", "Invalid credentials");

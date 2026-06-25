@@ -16,6 +16,6 @@ namespace blog.Domain.Users.Repository
         // Write
         Task AddAsync(User user, CancellationToken ct = default);
         void Update(User user);
-        void Delete(User user);
+        void SoftDelete(User user);
     }
 }

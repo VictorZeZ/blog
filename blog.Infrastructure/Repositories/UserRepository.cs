@@ -50,7 +50,10 @@ namespace blog.Infrastructure.Repositories
         public void Update(User user)
             => context.Users.Update(user);
 
-        public void Delete(User user)
-            => context.Users.Remove(user);
+        public void SoftDelete(User user)
+        {
+            user.SoftDelete();
+            context.Users.Update(user);
+        }
     }
 }

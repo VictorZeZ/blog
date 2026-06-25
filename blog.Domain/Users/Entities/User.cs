@@ -14,6 +14,9 @@ namespace blog.Domain.Users.Entities
         public string PasswordHash { get; private set; }
         public UserLevel Level { get; private set; }
 
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
         public ICollection<Post> Posts { get; private set; } = [];
         public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 
@@ -38,6 +41,13 @@ namespace blog.Domain.Users.Entities
         {
             FirstName = firstName;
             LastName = lastName;
+            MarkAsUpdated();
+        }
+
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
             MarkAsUpdated();
         }
 

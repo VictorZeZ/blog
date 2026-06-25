@@ -45,6 +45,11 @@ namespace blog.Infrastructure.Persistence.Configurations
             builder.Property(x => x.CreatedAt)
                 .IsRequired();
 
+            builder.Property(x => x.IsDeleted)
+                .HasColumnType("boolean")
+                .HasDefaultValue(false)
+                .IsRequired();
+
             builder.HasMany(x => x.Posts)
                 .WithOne(x => x.Author)
                 .HasForeignKey(x => x.AuthorId)
