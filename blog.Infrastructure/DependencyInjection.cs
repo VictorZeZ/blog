@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Posts.Repository;
+using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Repository;
 using blog.Infrastructure.Persistence;
 using blog.Infrastructure.Repositories;
@@ -20,6 +21,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         return services;
     }

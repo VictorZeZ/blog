@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Posts.Entities;
+using blog.Domain.Tokens.Entities;
 using blog.Domain.Users.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace blog.Infrastructure.Persistence
     {
         public DbSet<User> Users => Set<User>();
         public DbSet<Post> Posts => Set<Post>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
