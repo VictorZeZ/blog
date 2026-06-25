@@ -1,4 +1,5 @@
 using blog.Api.Extensions;
+using blog.Application;
 using blog.Infrastructure;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -6,6 +7,7 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication();
 
