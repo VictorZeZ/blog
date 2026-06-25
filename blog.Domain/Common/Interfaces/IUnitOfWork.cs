@@ -1,4 +1,4 @@
-﻿namespace blog.Domain.Common
+﻿namespace blog.Domain.Common.Interfaces
 {
     public interface IUnitOfWork
     {

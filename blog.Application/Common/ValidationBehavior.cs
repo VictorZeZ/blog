@@ -1,0 +1,10 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace blog.Application.Common
+{
+    internal class ValidationBehavior
+    {
+    }
+}

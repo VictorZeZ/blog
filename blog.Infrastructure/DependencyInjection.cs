@@ -1,9 +1,11 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Common.Interfaces;
+using blog.Domain.Common.Settings;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Repository;
 using blog.Infrastructure.Persistence;
 using blog.Infrastructure.Repositories;
+using blog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+        services.AddOptions<JwtSettings>()
+            .BindConfiguration(nameof(JwtSettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddScoped<IJwtService, JwtService>();
 
         return services;
     }

@@ -1,4 +1,4 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Common.Interfaces;
 
 namespace blog.Infrastructure.Persistence
 {
