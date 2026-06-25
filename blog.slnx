@@ -3,5 +3,7 @@
   <Project Path="blog.Application/blog.Application.csproj" />
   <Project Path="blog.Domain/blog.Domain.csproj" />
   <Project Path="blog.Infrastructure/blog.Infrastructure.csproj" />
-  <Project Path="blog.Tests/blog.Tests.csproj" Id="a26dead0-dd16-43b7-a71f-7d3e0d66d046" />
+  <Project Path="blog.Tests/blog.Tests.csproj" Id="a26dead0-dd16-43b7-a71f-7d3e0d66d046">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
 </Solution>
