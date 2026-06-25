@@ -1,9 +1,15 @@
 using blog.Api.Extensions;
+using blog.Application;
+using blog.Infrastructure;
+
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJwtAuthentication();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocumentation();
@@ -19,6 +25,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
