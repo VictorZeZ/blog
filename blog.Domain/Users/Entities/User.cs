@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
+using blog.Domain.Tokens.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Types;
 
@@ -14,6 +15,7 @@ namespace blog.Domain.Users.Entities
         public UserLevel Level { get; private set; }
 
         public ICollection<Post> Posts { get; private set; } = [];
+        public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 
         public User(string email, string firstName, string lastName, string passwordHash) : base(UserId.New())
         {
