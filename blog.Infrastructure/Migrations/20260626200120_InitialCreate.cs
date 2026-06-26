@@ -23,6 +23,8 @@ namespace blog.Infrastructure.Migrations
                     LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     PasswordHash = table.Column<string>(type: "text", maxLength: 256, nullable: false),
                     Level = table.Column<int>(type: "integer", nullable: false),
+                    IsBanned = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    BannedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

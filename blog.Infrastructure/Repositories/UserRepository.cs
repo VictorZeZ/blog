@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Common.Helpers;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Repository;
@@ -15,7 +16,7 @@ namespace blog.Infrastructure.Repositories
             => await context.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
-            => await context.Users.FirstOrDefaultAsync(x => x.Email == email.ToLowerInvariant(), ct);
+            => await context.Users.FirstOrDefaultAsync(x => x.Email == EmailNormalizer.Normalize(email), ct);
 
         public async Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default)
         {
@@ -42,7 +43,7 @@ namespace blog.Infrastructure.Repositories
         }
 
         public async Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
-            => await context.Users.AnyAsync(x => x.Email == email.ToLowerInvariant(), ct);
+            => await context.Users.AnyAsync(x => x.Email == EmailNormalizer.Normalize(email), ct);
 
         public async Task AddAsync(User user, CancellationToken ct = default)
             => await context.Users.AddAsync(user, ct);
