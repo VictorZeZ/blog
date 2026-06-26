@@ -1,0 +1,27 @@
+﻿using blog.Domain.Common.Interfaces;
+using blog.Domain.Exceptions;
+using blog.Domain.Tokens.Repository;
+using MediatR;
+
+namespace blog.Application.Users.Commands.Logout
+{
+    public class LogoutCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork) : IRequestHandler<LogoutCommand, LogoutResponse>
+    {
+        public async Task<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
+        {
+            var token = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
+            if (token is null)
+                throw new NotFoundException("RefreshToken", request.RefreshToken);
+
+            if (!token.IsValid())
+                throw new ExpiredException("RefreshToken");
+
+            token.Revoke();
+
+            refreshTokenRepository.Update(token);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new LogoutResponse { Success = true };
+        }
+    }
+}
