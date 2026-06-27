@@ -1,44 +1,42 @@
-﻿using blog.Application.Users.Commands.DeleteAccount;
+﻿using blog.Application.Users.Commands.UpdateUser;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
-using blog.Domain.Tokens.Entities;
-using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using FluentAssertions;
 using Moq;
 
-namespace blog.Tests.Unit.Application.Users
+namespace blog.Tests.Unit.Application.Users.Commands
 {
-    public class DeleteAccountCommandHandlerTests
+    public class UpdateUserCommandHandlerTests
     {
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
-        private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-        private readonly DeleteAccountCommandHandler _handler;
+        private readonly UpdateUserCommandHandler _handler;
 
-        public DeleteAccountCommandHandlerTests()
+        public UpdateUserCommandHandlerTests()
         {
-            _handler = new DeleteAccountCommandHandler(
+            _handler = new UpdateUserCommandHandler(
                 _userRepositoryMock.Object,
-                _refreshTokenRepositoryMock.Object,
                 _unitOfWorkMock.Object);
         }
 
-        private static DeleteAccountCommand ValidCommand => new()
+        private static UpdateUserCommand ValidCommand => new()
         {
-            UserId = Guid.NewGuid()
+            UserId = Guid.NewGuid(),
+            FirstName = "Ali",
+            LastName = "Rezaei"
         };
 
         private static User ValidUser => new(
             "test@test.com",
-            "Ali",
-            "Rezaei",
+            "OldFirstName",
+            "OldLastName",
             "hashed_password");
 
         [Fact]
-        public async Task Handle_ValidCommand_ReturnsSuccessResponse()
+        public async Task Handle_ValidCommand_ReturnsUpdateUserResponse()
         {
             // Arrange
             var command = ValidCommand;
@@ -48,16 +46,12 @@ namespace blog.Tests.Unit.Application.Users
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _refreshTokenRepositoryMock
-                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync([]);
-
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
-            result.Success.Should().BeTrue();
+            result.FullName.Should().Be($"{command.FirstName} {command.LastName}");
         }
 
         [Fact]
@@ -78,7 +72,7 @@ namespace blog.Tests.Unit.Application.Users
         }
 
         [Fact]
-        public async Task Handle_AlreadyDeletedUser_ThrowsInvalidStateException()
+        public async Task Handle_DeletedUser_ThrowsInvalidStateException()
         {
             // Arrange
             var command = ValidCommand;
@@ -97,38 +91,7 @@ namespace blog.Tests.Unit.Application.Users
         }
 
         [Fact]
-        public async Task Handle_ValidCommand_RevokesAllActiveTokens()
-        {
-            // Arrange
-            var command = ValidCommand;
-            var user = ValidUser;
-            var userId = new UserId(command.UserId);
-
-            var activeTokens = new List<RefreshToken>
-        {
-            new("token_1", userId, "Chrome"),
-            new("token_2", userId, "Firefox")
-        };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(user);
-
-            _refreshTokenRepositoryMock
-                .Setup(x => x.GetActiveByUserIdAsync(userId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(activeTokens);
-
-            // Act
-            await _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            _refreshTokenRepositoryMock.Verify(
-                x => x.Update(It.IsAny<RefreshToken>()),
-                Times.Exactly(2));
-        }
-
-        [Fact]
-        public async Task Handle_ValidCommand_SoftDeletesUser()
+        public async Task Handle_ValidCommand_UpdatesUser()
         {
             // Arrange
             var command = ValidCommand;
@@ -138,16 +101,12 @@ namespace blog.Tests.Unit.Application.Users
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _refreshTokenRepositoryMock
-                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync([]);
-
             // Act
             await _handler.Handle(command, CancellationToken.None);
 
             // Assert
             _userRepositoryMock.Verify(
-                x => x.SoftDelete(It.IsAny<User>()),
+                x => x.Update(It.IsAny<User>()),
                 Times.Once);
         }
 
@@ -161,10 +120,6 @@ namespace blog.Tests.Unit.Application.Users
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
-
-            _refreshTokenRepositoryMock
-                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync([]);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);

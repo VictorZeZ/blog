@@ -6,7 +6,7 @@ using blog.Domain.Users.Repository;
 using FluentAssertions;
 using Moq;
 
-namespace blog.Tests.Unit.Application.Users
+namespace blog.Tests.Unit.Application.Users.Commands
 {
     public class RegisterCommandHandlerTests
     {
