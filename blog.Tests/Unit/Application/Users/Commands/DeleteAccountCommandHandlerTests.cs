@@ -1,41 +1,41 @@
-﻿using blog.Application.Users.Commands.ChangePassword;
+﻿using blog.Application.Users.Commands.DeleteAccount;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Tokens.Entities;
+using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using FluentAssertions;
 using Moq;
 
-namespace blog.Tests.Unit.Application.Users
+namespace blog.Tests.Unit.Application.Users.Commands
 {
-    public class ChangePasswordCommandHandlerTests
+    public class DeleteAccountCommandHandlerTests
     {
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
-        private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+        private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-        private readonly ChangePasswordCommandHandler _handler;
+        private readonly DeleteAccountCommandHandler _handler;
 
-        public ChangePasswordCommandHandlerTests()
+        public DeleteAccountCommandHandlerTests()
         {
-            _handler = new ChangePasswordCommandHandler(
+            _handler = new DeleteAccountCommandHandler(
                 _userRepositoryMock.Object,
-                _passwordHasherMock.Object,
+                _refreshTokenRepositoryMock.Object,
                 _unitOfWorkMock.Object);
         }
 
-        private static ChangePasswordCommand ValidCommand => new()
+        private static DeleteAccountCommand ValidCommand => new()
         {
-            UserId = Guid.NewGuid(),
-            CurrentPassword = "OldPassword123",
-            NewPassword = "NewPassword123"
+            UserId = Guid.NewGuid()
         };
 
         private static User ValidUser => new(
             "test@test.com",
             "Ali",
             "Rezaei",
-            "hashed_old_password");
+            "hashed_password");
 
         [Fact]
         public async Task Handle_ValidCommand_ReturnsSuccessResponse()
@@ -48,13 +48,9 @@ namespace blog.Tests.Unit.Application.Users
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _passwordHasherMock
-                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
-                .Returns(true);
-
-            _passwordHasherMock
-                .Setup(x => x.Hash(command.NewPassword))
-                .Returns("hashed_new_password");
+            _refreshTokenRepositoryMock
+                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -82,7 +78,7 @@ namespace blog.Tests.Unit.Application.Users
         }
 
         [Fact]
-        public async Task Handle_DeletedUser_ThrowsInvalidStateException()
+        public async Task Handle_AlreadyDeletedUser_ThrowsInvalidStateException()
         {
             // Arrange
             var command = ValidCommand;
@@ -101,55 +97,38 @@ namespace blog.Tests.Unit.Application.Users
         }
 
         [Fact]
-        public async Task Handle_InvalidCurrentPassword_ThrowsValidationException()
+        public async Task Handle_ValidCommand_RevokesAllActiveTokens()
         {
             // Arrange
             var command = ValidCommand;
             var user = ValidUser;
+            var userId = new UserId(command.UserId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(user);
-
-            _passwordHasherMock
-                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
-                .Returns(false);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ValidationException>();
-        }
-
-        [Fact]
-        public async Task Handle_ValidCommand_HashesNewPassword()
+            var activeTokens = new List<RefreshToken>
         {
-            // Arrange
-            var command = ValidCommand;
-            var user = ValidUser;
+            new("token_1", userId, "Chrome"),
+            new("token_2", userId, "Firefox")
+        };
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _passwordHasherMock
-                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
-                .Returns(true);
-
-            _passwordHasherMock
-                .Setup(x => x.Hash(command.NewPassword))
-                .Returns("hashed_new_password");
+            _refreshTokenRepositoryMock
+                .Setup(x => x.GetActiveByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(activeTokens);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            _passwordHasherMock.Verify(x => x.Hash(command.NewPassword), Times.Once);
+            _refreshTokenRepositoryMock.Verify(
+                x => x.Update(It.IsAny<RefreshToken>()),
+                Times.Exactly(2));
         }
 
         [Fact]
-        public async Task Handle_ValidCommand_UpdatesUser()
+        public async Task Handle_ValidCommand_SoftDeletesUser()
         {
             // Arrange
             var command = ValidCommand;
@@ -159,20 +138,16 @@ namespace blog.Tests.Unit.Application.Users
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _passwordHasherMock
-                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
-                .Returns(true);
-
-            _passwordHasherMock
-                .Setup(x => x.Hash(command.NewPassword))
-                .Returns("hashed_new_password");
+            _refreshTokenRepositoryMock
+                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
 
             // Assert
             _userRepositoryMock.Verify(
-                x => x.Update(It.IsAny<User>()),
+                x => x.SoftDelete(It.IsAny<User>()),
                 Times.Once);
         }
 
@@ -187,13 +162,9 @@ namespace blog.Tests.Unit.Application.Users
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
-            _passwordHasherMock
-                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
-                .Returns(true);
-
-            _passwordHasherMock
-                .Setup(x => x.Hash(command.NewPassword))
-                .Returns("hashed_new_password");
+            _refreshTokenRepositoryMock
+                .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
