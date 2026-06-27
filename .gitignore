@@ -10,6 +10,11 @@
 *.userosscache
 *.sln.docstates
 
+# structure-generator files
+generate_structure.ps1
+generate-structure.bat
+project_structure.md
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
