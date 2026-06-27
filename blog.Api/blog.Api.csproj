@@ -17,10 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\blog.Application\blog.Application.csproj" />
     <ProjectReference Include="..\blog.Infrastructure\blog.Infrastructure.csproj" />
   </ItemGroup>
