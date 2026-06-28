@@ -19,6 +19,10 @@ namespace blog.Application.Users.Commands.Register
                 .NotEmpty()
                 .MaximumLength(100);
 
+            RuleFor(x => x.DeviceInfo)
+                .NotEmpty()
+                .MaximumLength(512);
+
             RuleFor(x => x.Password)
                 .NotEmpty()
                 .MinimumLength(8)
