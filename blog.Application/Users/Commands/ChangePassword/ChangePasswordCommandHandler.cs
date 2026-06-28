@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
@@ -14,8 +15,7 @@ namespace blog.Application.Users.Commands.ChangePassword
             if (user is null)
                 throw new NotFoundException("User", request.UserId);
 
-            if (user.IsDeleted)
-                throw new InvalidStateException("User", "Deleted", "Active");
+            user.EnsureActive();
 
             var isCurrentPasswordValid = passwordHasher.Verify(request.CurrentPassword, user.PasswordHash);
             if (!isCurrentPasswordValid)
