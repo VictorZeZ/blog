@@ -1,5 +1,5 @@
 ﻿using blog.Api.Common;
-using blog.Api.DTOs;
+using blog.Api.DTOs.Users;
 using blog.Application.Users.Commands.Login;
 using blog.Application.Users.Commands.Logout;
 using blog.Application.Users.Commands.RefreshToken;
