@@ -1,10 +1,10 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
-using blog.Domain.Tokens.Entities;
 using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using MediatR;
+using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.Login
 {
@@ -25,7 +25,7 @@ namespace blog.Application.Users.Commands.Login
             var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();
 
-            var token = new RefreshToken(
+            var token = new RefreshTokenEntity(
                 refreshToken,
                 user.Id,
                 request.DeviceInfo);

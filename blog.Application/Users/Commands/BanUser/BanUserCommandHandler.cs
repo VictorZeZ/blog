@@ -25,7 +25,8 @@ namespace blog.Application.Users.Commands.BanUser
             if (target is null)
                 throw new NotFoundException("User", request.TargetUserId);
 
-            target.EnsureActive();
+            if (target.IsDeleted)
+                throw new InvalidStateException("User", "Deleted", "Active");
 
             if (target.Level == UserLevel.Owner)
                 throw new ForbiddenException("ban_owner");
