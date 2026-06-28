@@ -2,6 +2,7 @@
 using blog.Domain.Exceptions;
 using blog.Domain.Tokens.Entities;
 using blog.Domain.Tokens.Repository;
+using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using MediatR;
 
@@ -15,8 +16,7 @@ namespace blog.Application.Users.Commands.Login
             if (user is null)
                 throw new NotFoundException("User", request.Email);
 
-            if (user.IsDeleted)
-                throw new InvalidStateException("User", "Deleted", "Active");
+            user.EnsureActive();
 
             var isPasswordValid = passwordHasher.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid)

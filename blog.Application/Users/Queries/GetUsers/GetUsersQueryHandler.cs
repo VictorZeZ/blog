@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Exceptions;
 using blog.Domain.Users.Enums;
+using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
@@ -15,8 +16,7 @@ namespace blog.Application.Users.Queries.GetUsers
             if (actor is null)
                 throw new NotFoundException("User", request.ActorId);
 
-            if (actor.IsDeleted)
-                throw new InvalidStateException("User", "Deleted", "Active");
+            actor.EnsureActive();
 
             if (actor.Level == UserLevel.Normal || actor.Level == UserLevel.Author)
                 throw new ForbiddenException("get_users");

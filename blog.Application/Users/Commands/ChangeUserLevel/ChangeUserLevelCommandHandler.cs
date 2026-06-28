@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Users.Enums;
+using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
@@ -15,8 +16,7 @@ namespace blog.Application.Users.Commands.ChangeUserLevel
             if (actor is null)
                 throw new NotFoundException("User", request.ActorId);
 
-            if (actor.IsDeleted)
-                throw new InvalidStateException("User", "Deleted", "Active");
+            actor.EnsureActive();
 
             if (actor.Level == UserLevel.Normal || actor.Level == UserLevel.Author)
                 throw new ForbiddenException("change_user_level");
@@ -25,8 +25,7 @@ namespace blog.Application.Users.Commands.ChangeUserLevel
             if (target is null)
                 throw new NotFoundException("User", request.TargetUserId);
 
-            if (target.IsDeleted)
-                throw new InvalidStateException("User", "Deleted", "Active");
+            target.EnsureActive();
 
             if (target.Level == UserLevel.Owner)
                 throw new ForbiddenException("change_owner_level");
