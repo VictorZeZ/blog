@@ -1,4 +1,4 @@
-﻿namespace blog.Api.DTOs
+﻿namespace blog.Api.DTOs.Users
 {
     public class RefreshTokenRequest
     {
