@@ -1,4 +1,4 @@
-﻿namespace blog.Application.Tokens.Commands.RefreshToken
+﻿namespace blog.Application.Users.Commands.RefreshToken
 {
     public class RefreshTokenResponse
     {

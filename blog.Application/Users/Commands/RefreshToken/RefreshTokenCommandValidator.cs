@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace blog.Application.Tokens.Commands.RefreshToken
+namespace blog.Application.Users.Commands.RefreshToken
 {
     public class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
     {

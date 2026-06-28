@@ -5,7 +5,7 @@ using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using MediatR;
 
-namespace blog.Application.Tokens.Commands.RefreshToken
+namespace blog.Application.Users.Commands.RefreshToken
 {
     public class RefreshTokenCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUserRepository userRepository, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
     {
