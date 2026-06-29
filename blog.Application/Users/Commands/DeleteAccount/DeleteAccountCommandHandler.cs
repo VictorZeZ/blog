@@ -8,7 +8,7 @@ using MediatR;
 
 namespace blog.Application.Users.Commands.DeleteAccount
 {
-    public class DeleteAccountCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork) : IRequestHandler<DeleteAccountCommand, DeleteAccountResponse>
+    public class DeleteAccountCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher, IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork) : IRequestHandler<DeleteAccountCommand, DeleteAccountResponse>
     {
         public async Task<DeleteAccountResponse> Handle(DeleteAccountCommand request, CancellationToken cancellationToken)
         {
@@ -19,6 +19,10 @@ namespace blog.Application.Users.Commands.DeleteAccount
                 throw new NotFoundException("User", request.UserId);
 
             user.EnsureActive();
+
+            var isCurrentPasswordValid = passwordHasher.Verify(request.CurrentPassword, user.PasswordHash);
+            if (!isCurrentPasswordValid)
+                throw new ValidationException("CurrentPassword", "Current password is incorrect");
 
             var activeTokens = await refreshTokenRepository.GetActiveByUserIdAsync(userId, cancellationToken);
 

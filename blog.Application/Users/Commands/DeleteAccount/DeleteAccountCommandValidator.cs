@@ -8,6 +8,9 @@ namespace blog.Application.Users.Commands.DeleteAccount
         {
             RuleFor(x => x.UserId)
                 .NotEmpty();
+
+            RuleFor(x => x.CurrentPassword)
+                .NotEmpty();
         }
     }
 }
