@@ -51,9 +51,13 @@ namespace blog.Api.Controllers
         }
 
         [HttpDelete("me")]
-        public async Task<IActionResult> DeleteAccount(CancellationToken ct)
+        public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest request, CancellationToken ct)
         {
-            var command = new DeleteAccountCommand { UserId = CurrentUserId };
+            var command = new DeleteAccountCommand
+            {
+                UserId = CurrentUserId,
+                CurrentPassword = request.CurrentPassword
+            };
 
             var result = await Mediator.Send(command, ct);
             return Ok(result);
