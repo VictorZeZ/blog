@@ -1,6 +1,7 @@
 ﻿using blog.Application.Users.Commands.Register;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Repository;
 using FluentAssertions;
@@ -11,7 +12,9 @@ namespace blog.Tests.Unit.Application.Users.Commands
     public class RegisterCommandHandlerTests
     {
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
+        private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+        private readonly Mock<IJwtService> _jwtServiceMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly RegisterCommandHandler _handler;
 
@@ -19,7 +22,9 @@ namespace blog.Tests.Unit.Application.Users.Commands
         {
             _handler = new RegisterCommandHandler(
                 _userRepositoryMock.Object,
+                _refreshTokenRepositoryMock.Object,
                 _passwordHasherMock.Object,
+                _jwtServiceMock.Object,
                 _unitOfWorkMock.Object);
         }
 

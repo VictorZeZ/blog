@@ -16,19 +16,22 @@ namespace blog.Tests.Unit.Application.Users.Commands
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
+        private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
         private readonly DeleteAccountCommandHandler _handler;
 
         public DeleteAccountCommandHandlerTests()
         {
             _handler = new DeleteAccountCommandHandler(
                 _userRepositoryMock.Object,
+                _passwordHasherMock.Object,
                 _refreshTokenRepositoryMock.Object,
                 _unitOfWorkMock.Object);
         }
 
         private static DeleteAccountCommand ValidCommand => new()
         {
-            UserId = Guid.NewGuid()
+            UserId = Guid.NewGuid(),
+            CurrentPassword = "Password123!"
         };
 
         private static User ValidUser => new(
@@ -36,6 +39,13 @@ namespace blog.Tests.Unit.Application.Users.Commands
             "Ali",
             "Rezaei",
             "hashed_password");
+
+        private void SetupValidPassword(DeleteAccountCommand command, User user)
+        {
+            _passwordHasherMock
+                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
+                .Returns(true);
+        }
 
         [Fact]
         public async Task Handle_ValidCommand_ReturnsSuccessResponse()
@@ -47,6 +57,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
+
+            SetupValidPassword(command, user);
 
             _refreshTokenRepositoryMock
                 .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
@@ -97,6 +109,71 @@ namespace blog.Tests.Unit.Application.Users.Commands
         }
 
         [Fact]
+        public async Task Handle_BannedUser_ThrowsInvalidStateException()
+        {
+            // Arrange
+            var command = ValidCommand;
+            var user = ValidUser;
+            user.Ban();
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidStateException>();
+        }
+
+        [Fact]
+        public async Task Handle_IncorrectCurrentPassword_ThrowsValidationException()
+        {
+            // Arrange
+            var command = ValidCommand;
+            var user = ValidUser;
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            _passwordHasherMock
+                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
+                .Returns(false);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<ValidationException>();
+        }
+
+        [Fact]
+        public async Task Handle_IncorrectCurrentPassword_DoesNotSoftDeleteOrSaveChanges()
+        {
+            // Arrange
+            var command = ValidCommand;
+            var user = ValidUser;
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            _passwordHasherMock
+                .Setup(x => x.Verify(command.CurrentPassword, user.PasswordHash))
+                .Returns(false);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+            await act.Should().ThrowAsync<ValidationException>();
+
+            // Assert
+            _userRepositoryMock.Verify(x => x.SoftDelete(It.IsAny<User>()), Times.Never);
+            _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task Handle_ValidCommand_RevokesAllActiveTokens()
         {
             // Arrange
@@ -105,14 +182,16 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var userId = new UserId(command.UserId);
 
             var activeTokens = new List<RefreshToken>
-        {
-            new("token_1", userId, "Chrome"),
-            new("token_2", userId, "Firefox")
-        };
+            {
+                new("token_1", userId, "Chrome"),
+                new("token_2", userId, "Firefox")
+            };
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
+
+            SetupValidPassword(command, user);
 
             _refreshTokenRepositoryMock
                 .Setup(x => x.GetActiveByUserIdAsync(userId, It.IsAny<CancellationToken>()))
@@ -138,6 +217,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
 
+            SetupValidPassword(command, user);
+
             _refreshTokenRepositoryMock
                 .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync([]);
@@ -161,6 +242,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(user);
+
+            SetupValidPassword(command, user);
 
             _refreshTokenRepositoryMock
                 .Setup(x => x.GetActiveByUserIdAsync(new UserId(command.UserId), It.IsAny<CancellationToken>()))
