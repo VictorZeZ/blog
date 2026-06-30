@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <Folder Include="Integration\" />
+    <Folder Include="Unit\Application\Posts\Queries\" />
   </ItemGroup>
 
 </Project>
