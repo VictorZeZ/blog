@@ -29,8 +29,15 @@ public static class DependencyInjection
             .BindConfiguration(nameof(JwtSettings))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        services.AddOptions<CloudinarySettings>()
+            .BindConfiguration(nameof(CloudinarySettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IFileStorageService, CloudinaryService>();
 
         return services;
     }
