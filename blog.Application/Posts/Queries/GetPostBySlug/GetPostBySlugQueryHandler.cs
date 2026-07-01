@@ -2,7 +2,7 @@
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
-using blog.Domain.Users.Enums;
+using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
@@ -56,13 +56,7 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
                 return false;
 
             var actor = await userRepository.GetByIdAsync(new UserId(actorId.Value), ct);
-            if (actor is null)
-                return false;
-
-            var isOwner = authorId == actor.Id;
-            var isElevated = actor.Level is UserLevel.Admin or UserLevel.Owner;
-
-            return isOwner || isElevated;
+            return actor is not null && actor.CanManagePost(authorId);
         }
     }
 }

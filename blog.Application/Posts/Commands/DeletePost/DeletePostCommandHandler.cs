@@ -2,7 +2,6 @@
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
-using blog.Domain.Users.Enums;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
@@ -24,10 +23,7 @@ namespace blog.Application.Posts.Commands.DeletePost
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);
 
-            var isOwner = post.AuthorId == actor.Id;
-            var isElevated = actor.Level is UserLevel.Admin or UserLevel.Owner;
-
-            if (!isOwner && !isElevated)
+            if (!actor.CanManagePost(post.AuthorId))
                 throw new ForbiddenException("delete_post");
 
             if (post.TitleImageUrl is not null)
