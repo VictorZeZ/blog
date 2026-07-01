@@ -18,7 +18,7 @@ namespace blog.Application.Users.Commands.ChangeUserLevel
 
             actor.EnsureActive();
 
-            if (actor.Level == UserLevel.Normal || actor.Level == UserLevel.Author)
+            if (!actor.IsElevated())
                 throw new ForbiddenException("change_user_level");
 
             var target = await userRepository.GetByIdAsync(new UserId(request.TargetUserId), cancellationToken);
