@@ -32,12 +32,16 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        public async Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        public async Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, CancellationToken ct = default)
         {
             var query = context.Posts
                 .Include(x => x.Author)
-                .Where(x => x.AuthorId == authorId)
-                .ApplySorting(sortBy);
+                .Where(x => x.AuthorId == authorId);
+
+            if (publishedOnly)
+                query = query.Where(x => x.Status == PostStatus.Published);
+
+            query = query.ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);
         }
