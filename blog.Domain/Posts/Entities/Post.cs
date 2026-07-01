@@ -53,16 +53,17 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
-        public void Update(string title, string content, List<string> tags)
+        public void Update(string title, string? titleImageUrl, string content, List<string> tags)
         {
             Title = title;
+            TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
             Slug = GenerateSlug(title);
             MarkAsUpdated();
         }
 
-        private static string GenerateSlug(string title)
+        public static string GenerateSlug(string title)
         {
             return title
                 .ToLowerInvariant()
