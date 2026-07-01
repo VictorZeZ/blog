@@ -1,6 +1,5 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Exceptions;
-using blog.Domain.Users.Enums;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
@@ -18,7 +17,7 @@ namespace blog.Application.Users.Queries.GetUsers
 
             actor.EnsureActive();
 
-            if (actor.Level == UserLevel.Normal || actor.Level == UserLevel.Author)
+            if (!actor.IsElevated())
                 throw new ForbiddenException("get_users");
 
             var result = await userRepository.GetAllAsync(
