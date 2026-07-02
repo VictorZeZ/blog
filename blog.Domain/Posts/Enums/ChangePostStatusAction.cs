@@ -1,4 +1,4 @@
-﻿namespace blog.Domain.Common.Enum
+﻿namespace blog.Domain.Posts.Enums
 {
     public enum ChangePostStatusAction
     {

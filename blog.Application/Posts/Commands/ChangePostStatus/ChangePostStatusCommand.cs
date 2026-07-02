@@ -1,4 +1,4 @@
-﻿using blog.Domain.Common.Enum;
+﻿using blog.Domain.Posts.Enums;
 using MediatR;
 
 namespace blog.Application.Posts.Commands.ChangePostStatus

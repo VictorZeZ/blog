@@ -1,5 +1,4 @@
 ﻿using blog.Application.Posts.Commands.ChangePostStatus;
-using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
