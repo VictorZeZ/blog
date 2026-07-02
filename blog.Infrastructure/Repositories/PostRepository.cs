@@ -22,6 +22,24 @@ namespace blog.Infrastructure.Repositories
                 .Include(x => x.Author)
                 .FirstOrDefaultAsync(x => x.Slug == slug, ct);
 
+        public async Task<PagedResult<Post>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, CancellationToken ct = default)
+        {
+            var query = context.Posts.Include(x => x.Author).AsQueryable();
+
+            query = filter switch
+            {
+                PostFilter.Draft => query.Where(x => x.Status == PostStatus.Draft),
+                PostFilter.PendingApproval => query.Where(x => x.Status == PostStatus.PendingApproval),
+                PostFilter.Published => query.Where(x => x.Status == PostStatus.Published),
+                PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
+                _ => query
+            };
+
+            query = query.ApplySorting(sortBy);
+
+            return await query.ToPagedResultAsync(paging, ct);
+        }
+
         public async Task<PagedResult<Post>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
         {
             var query = context.Posts
@@ -60,7 +78,7 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
-                .Where(x => x.Status == PostStatus.Published && EF.Functions.JsonContains(x.Tags, $"[\"{tag}\"]"))
+                .Where(x => x.Status == PostStatus.Published && x.Tags.Contains(tag))
                 .ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);
@@ -71,8 +89,7 @@ namespace blog.Infrastructure.Repositories
             var query = context.Posts
                 .Include(x => x.Author)
                 .Where(x => x.Status == PostStatus.Published &&
-                            EF.Functions.ToTsVector("english", x.Title + " " + x.Content)
-                                .Matches(term))
+                            x.SearchVector.Matches(EF.Functions.PlainToTsQuery("english", term)))
                 .ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);

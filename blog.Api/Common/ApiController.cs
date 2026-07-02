@@ -14,6 +14,10 @@ namespace blog.Api.Common
         protected Guid CurrentUserId =>
             Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
 
+        protected Guid? CurrentUserIdOrNull =>
+            User.Identity?.IsAuthenticated == true ? Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!)
+            : null;
+
         protected string CurrentUserRole =>
             User.FindFirstValue(ClaimTypes.Role)!;
     }

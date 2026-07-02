@@ -1,12 +1,16 @@
-﻿using FluentValidation;
+﻿using blog.Application.Posts.Commands.UpdatePost;
+using FluentValidation;
 
 namespace blog.Application.Posts.Commands.CreatePost
 {
-    public class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
+    public class UpdatePostCommandValidator : AbstractValidator<UpdatePostCommand>
     {
-        public CreatePostCommandValidator()
+        public UpdatePostCommandValidator()
         {
-            RuleFor(x => x.AuthorId)
+            RuleFor(x => x.ActorId)
+                .NotEmpty();
+
+            RuleFor(x => x.PostId)
                 .NotEmpty();
 
             RuleFor(x => x.Title)
@@ -21,12 +25,17 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             RuleForEach(x => x.Tags)
                 .NotEmpty()
-                .MaximumLength(50);
+                .MaximumLength(50)
+                .Must(NotContainStructuralCharacters)
+                    .WithMessage("Tag must not contain brackets, quotes, or commas.");
 
-            RuleFor(x => x.TitleImageFileName)
-                .NotEmpty()
+            RuleFor(x => x.RemoveTitleImage)
+                .Equal(false)
                 .When(x => x.TitleImageStream is not null)
-                .WithMessage("TitleImageFileName is required when TitleImageStream is provided");
+                .WithMessage("Cannot remove and replace TitleImage in the same request");
         }
+
+        private static bool NotContainStructuralCharacters(string tag)
+            => tag.IndexOfAny(['[', ']', '"', ',']) == -1;
     }
 }

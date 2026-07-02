@@ -16,6 +16,9 @@ namespace blog.Domain.Users.Extensions
                 throw new InvalidStateException("User", "Banned", "Active");
         }
 
+        public static bool IsOwner(this User user)
+            => user.Level == UserLevel.Owner;
+
         public static bool IsElevated(this User user)
             => user.Level is UserLevel.Admin or UserLevel.Owner;
 
