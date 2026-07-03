@@ -22,6 +22,9 @@ namespace blog.Domain.Users.Extensions
         public static bool IsElevated(this User user)
             => user.Level is UserLevel.Admin or UserLevel.Owner;
 
+        public static bool IsAuthorOrHigher(this User user)
+            => user.Level >= UserLevel.Author;
+
         public static bool CanManagePost(this User user, UserId postAuthorId)
             => user.Id == postAuthorId || user.IsElevated();
     }

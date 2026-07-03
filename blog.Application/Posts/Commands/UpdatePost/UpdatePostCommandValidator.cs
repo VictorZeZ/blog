@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Posts.Common;
+using FluentValidation;
 
 namespace blog.Application.Posts.Commands.UpdatePost
 {
@@ -23,6 +24,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
                 .NotNull();
 
             RuleForEach(x => x.Tags)
+                .ApplyTagRules()
                 .NotEmpty()
                 .MaximumLength(50);
 

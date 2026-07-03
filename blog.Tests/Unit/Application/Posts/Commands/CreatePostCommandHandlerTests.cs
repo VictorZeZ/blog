@@ -169,6 +169,35 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
+        public async Task Handle_DuplicateTitle_ThrowsAlreadyExistsException()
+        {
+            // Arrange
+            var author = CreateAuthor(UserLevel.Author);
+
+            var command = new CreatePostCommand
+            {
+                AuthorId = author.Id.Value,
+                Title = "My First Post",
+                Content = "Some content",
+                Tags = ["dotnet"]
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(author);
+
+            _postRepositoryMock
+                .Setup(x => x.ExistsBySlugAsync("my-first-post", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<AlreadyExistsException>();
+        }
+
+        [Fact]
         public async Task Handle_NoTitleImageStream_DoesNotCallFileStorageService()
         {
             // Arrange
