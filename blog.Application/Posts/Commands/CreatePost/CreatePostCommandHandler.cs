@@ -3,7 +3,6 @@ using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Repository;
-using blog.Domain.Users.Enums;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
@@ -21,8 +20,13 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             author.EnsureActive();
 
-            if (author.Level == UserLevel.Normal)
+            if (!author.IsAuthorOrHigher())
                 throw new ForbiddenException("create_post");
+
+            var newSlug = Post.GenerateSlug(request.Title);
+            var slugTaken = await postRepository.ExistsBySlugAsync(newSlug, cancellationToken);
+            if (slugTaken)
+                throw new AlreadyExistsException("Post", request.Title);
 
             string? titleImageUrl = null;
             if (request.TitleImageStream is not null)

@@ -3,7 +3,6 @@ using blog.Domain.Exceptions;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
-using blog.Domain.Users.Enums;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
@@ -21,7 +20,7 @@ namespace blog.Application.Posts.Commands.ChangePostStatus
 
             actor.EnsureActive();
 
-            if (actor.Level != UserLevel.Admin && actor.Level != UserLevel.Owner)
+            if (!actor.IsElevated())
                 throw new ForbiddenException("change_post_status");
 
             var post = await postRepository.GetByIdAsync(new PostId(request.PostId), cancellationToken);
