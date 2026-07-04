@@ -13,14 +13,16 @@ namespace blog.Application.Users.Commands.Login
         public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+
+            var isPasswordValid = user is not null && passwordHasher.Verify(request.Password, user.PasswordHash);
+
             if (user is null)
-                throw new NotFoundException("User", request.Email);
+                passwordHasher.Hash(request.Password);
+
+            if (user is null || !isPasswordValid)
+                throw new ValidationException("Credentials", "Invalid email or password");
 
             user.EnsureActive();
-
-            var isPasswordValid = passwordHasher.Verify(request.Password, user.PasswordHash);
-            if (!isPasswordValid)
-                throw new ValidationException("Password", "Invalid credentials");
 
             var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();

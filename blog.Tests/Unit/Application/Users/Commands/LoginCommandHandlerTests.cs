@@ -45,7 +45,6 @@ namespace blog.Tests.Unit.Application.Users.Commands
         [Fact]
         public async Task Handle_ValidCommand_ReturnsLoginResponse()
         {
-            // Arrange
             var command = ValidCommand;
             var user = ValidUser;
 
@@ -65,36 +64,45 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.GenerateRefreshToken())
                 .Returns("refresh_token");
 
-            // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
-            // Assert
             result.Should().NotBeNull();
             result.AccessToken.Should().Be("access_token");
             result.RefreshToken.Should().Be("refresh_token");
         }
 
         [Fact]
-        public async Task Handle_UserNotFound_ThrowsNotFoundException()
+        public async Task Handle_UserNotFound_ThrowsValidationException()
         {
-            // Arrange
             var command = ValidCommand;
 
             _userRepositoryMock
                 .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((User?)null);
 
-            // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
 
-            // Assert
-            await act.Should().ThrowAsync<NotFoundException>();
+            await act.Should().ThrowAsync<ValidationException>();
+        }
+
+        [Fact]
+        public async Task Handle_UserNotFound_StillPerformsDummyHashToPreventTimingLeak()
+        {
+            var command = ValidCommand;
+
+            _userRepositoryMock
+                .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((User?)null);
+
+            var act = () => _handler.Handle(command, CancellationToken.None);
+            await act.Should().ThrowAsync<ValidationException>();
+
+            _passwordHasherMock.Verify(x => x.Hash(command.Password), Times.Once);
         }
 
         [Fact]
         public async Task Handle_InvalidPassword_ThrowsValidationException()
         {
-            // Arrange
             var command = ValidCommand;
             var user = ValidUser;
 
@@ -106,17 +114,54 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.Verify(command.Password, user.PasswordHash))
                 .Returns(false);
 
-            // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
 
-            // Assert
+            await act.Should().ThrowAsync<ValidationException>();
+        }
+
+        [Fact]
+        public async Task Handle_BannedUser_WithCorrectPassword_ThrowsInvalidStateException()
+        {
+            var command = ValidCommand;
+            var user = ValidUser;
+            user.Ban();
+
+            _userRepositoryMock
+                .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            _passwordHasherMock
+                .Setup(x => x.Verify(command.Password, user.PasswordHash))
+                .Returns(true);
+
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            await act.Should().ThrowAsync<InvalidStateException>();
+        }
+
+        [Fact]
+        public async Task Handle_BannedUser_WithWrongPassword_ThrowsValidationExceptionNotAccountState()
+        {
+            var command = ValidCommand;
+            var user = ValidUser;
+            user.Ban();
+
+            _userRepositoryMock
+                .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            _passwordHasherMock
+                .Setup(x => x.Verify(command.Password, user.PasswordHash))
+                .Returns(false);
+
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
             await act.Should().ThrowAsync<ValidationException>();
         }
 
         [Fact]
         public async Task Handle_ValidCommand_AddsRefreshToken()
         {
-            // Arrange
             var command = ValidCommand;
             var user = ValidUser;
 
@@ -136,10 +181,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.GenerateRefreshToken())
                 .Returns("refresh_token");
 
-            // Act
             await _handler.Handle(command, CancellationToken.None);
 
-            // Assert
             _refreshTokenRepositoryMock.Verify(
                 x => x.AddAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -148,7 +191,6 @@ namespace blog.Tests.Unit.Application.Users.Commands
         [Fact]
         public async Task Handle_ValidCommand_SavesChanges()
         {
-            // Arrange
             var command = ValidCommand;
             var user = ValidUser;
 
@@ -168,10 +210,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.GenerateRefreshToken())
                 .Returns("refresh_token");
 
-            // Act
             await _handler.Handle(command, CancellationToken.None);
 
-            // Assert
             _unitOfWorkMock.Verify(
                 x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -180,7 +220,6 @@ namespace blog.Tests.Unit.Application.Users.Commands
         [Fact]
         public async Task Handle_ValidCommand_GeneratesTokens()
         {
-            // Arrange
             var command = ValidCommand;
             var user = ValidUser;
 
@@ -200,10 +239,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.GenerateRefreshToken())
                 .Returns("refresh_token");
 
-            // Act
             await _handler.Handle(command, CancellationToken.None);
 
-            // Assert
             _jwtServiceMock.Verify(x => x.GenerateAccessToken(user), Times.Once);
             _jwtServiceMock.Verify(x => x.GenerateRefreshToken(), Times.Once);
         }
