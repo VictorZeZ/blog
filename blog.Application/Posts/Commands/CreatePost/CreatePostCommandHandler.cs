@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Extensions;
@@ -30,7 +31,11 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             string? titleImageUrl = null;
             if (request.TitleImageStream is not null)
+            {
+                PostImageValidationRules.EnsureValid(request.TitleImageFileName!, request.TitleImageSizeBytes, request.TitleImageContentType!);
+
                 titleImageUrl = await fileStorageService.UploadAsync(request.TitleImageStream, request.TitleImageFileName!, StorageFolder.Posts, cancellationToken);
+            }
 
             var post = new Post(
                 request.Title,

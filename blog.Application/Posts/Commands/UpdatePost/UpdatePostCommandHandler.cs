@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
@@ -38,7 +39,9 @@ namespace blog.Application.Posts.Commands.UpdatePost
 
             var titleImageUrl = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
 
-            post.Update(request.Title, titleImageUrl, request.Content, request.Tags);
+            var requiresReapproval = !actor.IsElevated();
+
+            post.Update(request.Title, titleImageUrl, request.Content, request.Tags, requiresReapproval);
 
             postRepository.Update(post);
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -65,6 +68,11 @@ namespace blog.Application.Posts.Commands.UpdatePost
 
             if (request.TitleImageStream is null)
                 return currentImageUrl;
+
+            PostImageValidationRules.EnsureValid(
+                request.TitleImageFileName!,
+                request.TitleImageSizeBytes,
+                request.TitleImageContentType!);
 
             var uploadedUrl = await fileStorageService.UploadAsync(request.TitleImageStream, request.TitleImageFileName!, StorageFolder.Posts, ct);
 

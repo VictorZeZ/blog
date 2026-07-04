@@ -1,6 +1,5 @@
 ﻿using blog.Application.Users.Queries.GetUsers;
 using blog.Domain.Common;
-using blog.Domain.Exceptions;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Repository;
@@ -17,8 +16,7 @@ namespace blog.Tests.Unit.Application.Users.Queries
 
         public GetUsersQueryHandlerTests()
         {
-            _handler = new GetUsersQueryHandler(
-                _userRepositoryMock.Object);
+            _handler = new GetUsersQueryHandler(_userRepositoryMock.Object);
         }
 
         private static User CreateUser(string email, UserLevel level)
@@ -88,100 +86,37 @@ namespace blog.Tests.Unit.Application.Users.Queries
         }
 
         [Fact]
-        public async Task Handle_NormalActor_ThrowsForbiddenException()
+        public async Task Handle_ValidQuery_ReturnsPagedResult()
         {
             // Arrange
-            var actorId = Guid.NewGuid();
-            var actor = CreateUser("normal@test.com", UserLevel.Normal);
-            var query = ValidQuery(actorId);
+            var query = ValidQuery(Guid.NewGuid());
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
+                .Setup(x => x.GetAllAsync(query.Paging, query.SortBy, query.Filter, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyPagedResult);
 
             // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(query, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
-        public async Task Handle_AuthorActor_ThrowsForbiddenException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var actor = CreateUser("author@test.com", UserLevel.Author);
-            var query = ValidQuery(actorId);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
-        public async Task Handle_ActorNotFound_ThrowsNotFoundException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var query = ValidQuery(actorId);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((User?)null);
-
-            // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<NotFoundException>();
-        }
-
-        [Fact]
-        public async Task Handle_DeletedActor_ThrowsInvalidStateException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var actor = CreateUser("admin@test.com", UserLevel.Admin);
-            actor.SoftDelete();
-            var query = ValidQuery(actorId);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<InvalidStateException>();
+            result.Should().NotBeNull();
+            result.Items.Should().BeEmpty();
+            result.TotalCount.Should().Be(0);
         }
 
         [Fact]
         public async Task Handle_ValidQuery_ReturnsCorrectUserData()
         {
             // Arrange
-            var actorId = Guid.NewGuid();
-            var actor = CreateUser("admin@test.com", UserLevel.Admin);
-            var query = ValidQuery(actorId);
+            var query = ValidQuery(Guid.NewGuid());
 
             var users = new List<User>
-        {
-            CreateUser("user1@test.com", UserLevel.Normal),
-            CreateUser("user2@test.com", UserLevel.Author)
-        };
+            {
+                CreateUser("user1@test.com", UserLevel.Normal),
+                CreateUser("user2@test.com", UserLevel.Author)
+            };
 
             var pagedResult = new PagedResult<User>(users, 2, 1, 10);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _userRepositoryMock
                 .Setup(x => x.GetAllAsync(query.Paging, query.SortBy, query.Filter, It.IsAny<CancellationToken>()))

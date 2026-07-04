@@ -30,7 +30,9 @@ namespace blog.Api.Controllers
                 Content = request.Content,
                 Tags = request.Tags,
                 TitleImageStream = request.TitleImage?.OpenReadStream(),
-                TitleImageFileName = request.TitleImage?.FileName
+                TitleImageFileName = request.TitleImage?.FileName,
+                TitleImageContentType = request.TitleImage?.ContentType,
+                TitleImageSizeBytes = request.TitleImage?.Length ?? 0
             };
 
             var result = await Mediator.Send(command, ct);
@@ -51,7 +53,9 @@ namespace blog.Api.Controllers
                 Tags = request.Tags,
                 TitleImageStream = request.TitleImage?.OpenReadStream(),
                 TitleImageFileName = request.TitleImage?.FileName,
-                RemoveTitleImage = request.RemoveTitleImage
+                RemoveTitleImage = request.RemoveTitleImage,
+                TitleImageContentType = request.TitleImage?.ContentType,
+                TitleImageSizeBytes = request.TitleImage?.Length ?? 0
             };
 
             var result = await Mediator.Send(command, ct);

@@ -53,13 +53,17 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
-        public void Update(string title, string? titleImageUrl, string content, List<string> tags)
+        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval)
         {
             Title = title;
             TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
             Slug = GenerateSlug(title);
+
+            if (requiresReapproval && Status == PostStatus.Published)
+                Status = PostStatus.PendingApproval;
+
             MarkAsUpdated();
         }
 

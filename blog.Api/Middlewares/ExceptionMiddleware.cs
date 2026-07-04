@@ -14,16 +14,16 @@ namespace blog.Api.Middlewares
             catch (DomainException ex)
             {
                 logger.LogWarning(ex, "Domain exception occurred: {ErrorCode}", ex.ErrorCode);
-                await HandleDomainExceptionAsync(context, ex);
+                await WriteDomainExceptionResponseAsync(context, ex);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected exception occurred");
-                await HandleUnknownExceptionAsync(context);
+                await WriteDomainExceptionResponseAsync(context, new UnknownException(ex.Message));
             }
         }
 
-        private static async Task HandleDomainExceptionAsync(HttpContext context, DomainException ex)
+        private static async Task WriteDomainExceptionResponseAsync(HttpContext context, DomainException ex)
         {
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = ex.StatusCode;
@@ -34,25 +34,6 @@ namespace blog.Api.Middlewares
                 ex.ErrorCode,
                 ex.Title,
                 ex.Details
-            };
-
-            await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            }));
-        }
-
-        private static async Task HandleUnknownExceptionAsync(HttpContext context)
-        {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = 500;
-
-            var response = new
-            {
-                StatusCode = 500,
-                ErrorCode = "UNKNOWN_ERROR",
-                Title = "An unexpected error occurred",
-                Details = (object?)null
             };
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions

@@ -3,26 +3,14 @@ using blog.Domain.Exceptions;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
-using blog.Domain.Users.Extensions;
-using blog.Domain.Users.Repository;
-using blog.Domain.Users.Types;
 using MediatR;
 
 namespace blog.Application.Posts.Commands.ChangePostStatus
 {
-    public class ChangePostStatusCommandHandler(IUserRepository userRepository, IPostRepository postRepository, IUnitOfWork unitOfWork) : IRequestHandler<ChangePostStatusCommand, ChangePostStatusResponse>
+    public class ChangePostStatusCommandHandler(IPostRepository postRepository, IUnitOfWork unitOfWork) : IRequestHandler<ChangePostStatusCommand, ChangePostStatusResponse>
     {
         public async Task<ChangePostStatusResponse> Handle(ChangePostStatusCommand request, CancellationToken cancellationToken)
         {
-            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken);
-            if (actor is null)
-                throw new NotFoundException("User", request.ActorId);
-
-            actor.EnsureActive();
-
-            if (!actor.IsElevated())
-                throw new ForbiddenException("change_post_status");
-
             var post = await postRepository.GetByIdAsync(new PostId(request.PostId), cancellationToken);
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);

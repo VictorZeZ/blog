@@ -10,5 +10,7 @@ namespace blog.Application.Posts.Commands.CreatePost
         public List<string> Tags { get; init; } = [];
         public Stream? TitleImageStream { get; init; }
         public string? TitleImageFileName { get; init; }
+        public string? TitleImageContentType { get; init; }
+        public long TitleImageSizeBytes { get; init; }
     }
 }

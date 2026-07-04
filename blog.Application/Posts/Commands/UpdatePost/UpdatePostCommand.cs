@@ -12,5 +12,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
         public Stream? TitleImageStream { get; init; }
         public string? TitleImageFileName { get; init; }
         public bool RemoveTitleImage { get; init; }
+        public string? TitleImageContentType { get; init; }
+        public long TitleImageSizeBytes { get; init; }
     }
 }

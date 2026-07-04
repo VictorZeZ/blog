@@ -1,17 +1,13 @@
-﻿using blog.Application.Posts.Commands.UpdatePost;
-using blog.Domain.Posts.Common;
+﻿using blog.Domain.Posts.Common;
 using FluentValidation;
 
 namespace blog.Application.Posts.Commands.CreatePost
 {
-    public class UpdatePostCommandValidator : AbstractValidator<UpdatePostCommand>
+    public class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
     {
-        public UpdatePostCommandValidator()
+        public CreatePostCommandValidator()
         {
-            RuleFor(x => x.ActorId)
-                .NotEmpty();
-
-            RuleFor(x => x.PostId)
+            RuleFor(x => x.AuthorId)
                 .NotEmpty();
 
             RuleFor(x => x.Title)
@@ -27,10 +23,10 @@ namespace blog.Application.Posts.Commands.CreatePost
             RuleForEach(x => x.Tags)
                 .ApplyTagRules();
 
-            RuleFor(x => x.RemoveTitleImage)
-                .Equal(false)
+            RuleFor(x => x.TitleImageFileName)
+                .NotEmpty()
                 .When(x => x.TitleImageStream is not null)
-                .WithMessage("Cannot remove and replace TitleImage in the same request");
+                .WithMessage("TitleImageFileName is required when TitleImageStream is provided");
         }
     }
 }

@@ -7,8 +7,6 @@ using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
-using blog.Domain.Users.Repository;
-using blog.Domain.Users.Types;
 using FluentAssertions;
 using Moq;
 
@@ -16,7 +14,6 @@ namespace blog.Tests.Unit.Application.Posts.Commands
 {
     public class ChangePostStatusCommandHandlerTests
     {
-        private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IPostRepository> _postRepositoryMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly ChangePostStatusCommandHandler _handler;
@@ -24,7 +21,6 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public ChangePostStatusCommandHandlerTests()
         {
             _handler = new ChangePostStatusCommandHandler(
-                _userRepositoryMock.Object,
                 _postRepositoryMock.Object,
                 _unitOfWorkMock.Object);
         }
@@ -44,25 +40,18 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             return new Post("My First Post", null, "Some content", ["dotnet"], author);
         }
 
-        [Theory]
-        [InlineData(UserLevel.Admin)]
-        [InlineData(UserLevel.Owner)]
-        public async Task Handle_ApproveAction_ReturnsPublishedStatus(UserLevel actorLevel)
+        [Fact]
+        public async Task Handle_ApproveAction_ReturnsPublishedStatus()
         {
             // Arrange
-            var actor = CreateActor(actorLevel);
             var post = CreatePost(UserLevel.Author);
 
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Approve
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -77,25 +66,18 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             result.Id.Should().Be(post.Id.Value);
         }
 
-        [Theory]
-        [InlineData(UserLevel.Admin)]
-        [InlineData(UserLevel.Owner)]
-        public async Task Handle_RejectAction_ReturnsRejectedStatus(UserLevel actorLevel)
+        [Fact]
+        public async Task Handle_RejectAction_ReturnsRejectedStatus()
         {
             // Arrange
-            var actor = CreateActor(actorLevel);
             var post = CreatePost(UserLevel.Author);
 
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Reject
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -111,7 +93,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
-        public async Task Handle_ActorNotFound_ThrowsNotFoundException()
+        public async Task Handle_PostNotFound_ThrowsNotFoundException()
         {
             // Arrange
             var command = new ChangePostStatusCommand
@@ -120,34 +102,6 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 PostId = Guid.NewGuid(),
                 Action = ChangePostStatusAction.Approve
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((User?)null);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<NotFoundException>();
-        }
-
-        [Fact]
-        public async Task Handle_PostNotFound_ThrowsNotFoundException()
-        {
-            // Arrange
-            var actor = CreateActor(UserLevel.Admin);
-
-            var command = new ChangePostStatusCommand
-            {
-                ActorId = actor.Id.Value,
-                PostId = Guid.NewGuid(),
-                Action = ChangePostStatusAction.Approve
-            };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -160,100 +114,18 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             await act.Should().ThrowAsync<NotFoundException>();
         }
 
-        [Theory]
-        [InlineData(UserLevel.Normal)]
-        [InlineData(UserLevel.Author)]
-        public async Task Handle_UnauthorizedActor_ThrowsForbiddenException(UserLevel actorLevel)
-        {
-            // Arrange
-            var actor = CreateActor(actorLevel);
-
-            var command = new ChangePostStatusCommand
-            {
-                ActorId = actor.Id.Value,
-                PostId = Guid.NewGuid(),
-                Action = ChangePostStatusAction.Approve
-            };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
-        public async Task Handle_DeletedActor_ThrowsInvalidStateException()
-        {
-            // Arrange
-            var actor = CreateActor(UserLevel.Admin);
-            actor.SoftDelete();
-
-            var command = new ChangePostStatusCommand
-            {
-                ActorId = actor.Id.Value,
-                PostId = Guid.NewGuid(),
-                Action = ChangePostStatusAction.Approve
-            };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<InvalidStateException>();
-        }
-
-        [Fact]
-        public async Task Handle_BannedActor_ThrowsInvalidStateException()
-        {
-            // Arrange
-            var actor = CreateActor(UserLevel.Admin);
-            actor.Ban();
-
-            var command = new ChangePostStatusCommand
-            {
-                ActorId = actor.Id.Value,
-                PostId = Guid.NewGuid(),
-                Action = ChangePostStatusAction.Approve
-            };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<InvalidStateException>();
-        }
-
         [Fact]
         public async Task Handle_ApproveAlreadyPublishedPost_ThrowsInvalidStateException()
         {
             // Arrange
-            var actor = CreateActor(UserLevel.Admin);
-            var post = CreatePost(UserLevel.Admin);
+            var post = CreatePost(UserLevel.Admin); // Admin-authored post is auto-published
 
-            // Admin-authored post is auto-published, so Status is already Published
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Approve
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -270,20 +142,15 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_RejectAlreadyRejectedPost_ThrowsInvalidStateException()
         {
             // Arrange
-            var actor = CreateActor(UserLevel.Admin);
             var post = CreatePost(UserLevel.Author);
             post.Reject();
 
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Reject
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -300,19 +167,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_ValidCommand_UpdatesPostInRepository()
         {
             // Arrange
-            var actor = CreateActor(UserLevel.Admin);
             var post = CreatePost(UserLevel.Author);
 
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Approve
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
@@ -331,19 +193,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_ValidCommand_SavesChanges()
         {
             // Arrange
-            var actor = CreateActor(UserLevel.Admin);
             var post = CreatePost(UserLevel.Author);
 
             var command = new ChangePostStatusCommand
             {
-                ActorId = actor.Id.Value,
+                ActorId = Guid.NewGuid(),
                 PostId = post.Id.Value,
                 Action = ChangePostStatusAction.Approve
             };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
 
             _postRepositoryMock
                 .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))

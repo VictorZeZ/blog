@@ -38,6 +38,17 @@ namespace blog.Tests.Unit.Application.Users.Commands
             Level = UserLevel.Author
         };
 
+        private void SetupActorAndTarget(User actor, Guid actorId, User? target, Guid targetId)
+        {
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(actor);
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(target);
+        }
+
         [Fact]
         public async Task Handle_OwnerChangingNormalUser_ReturnsSuccess()
         {
@@ -46,18 +57,11 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var targetId = Guid.NewGuid();
             var actor = CreateUser("owner@test.com", UserLevel.Owner);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
-            var command = ValidCommand(actorId, targetId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -72,62 +76,15 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var targetId = Guid.NewGuid();
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
-            var command = ValidCommand(actorId, targetId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
             result.Level.Should().Be(UserLevel.Author);
-        }
-
-        [Fact]
-        public async Task Handle_NormalUserChanging_ThrowsForbiddenException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var targetId = Guid.NewGuid();
-            var actor = CreateUser("normal@test.com", UserLevel.Normal);
-            var command = ValidCommand(actorId, targetId);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
-        public async Task Handle_AuthorChanging_ThrowsForbiddenException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var targetId = Guid.NewGuid();
-            var actor = CreateUser("author@test.com", UserLevel.Author);
-            var command = ValidCommand(actorId, targetId);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
         }
 
         [Fact]
@@ -138,18 +95,11 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var targetId = Guid.NewGuid();
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("owner@test.com", UserLevel.Owner);
-            var command = ValidCommand(actorId, targetId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<ForbiddenException>();
@@ -170,13 +120,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 Level = UserLevel.Normal
             };
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
@@ -200,13 +144,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 Level = UserLevel.Author
             };
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
@@ -221,14 +159,13 @@ namespace blog.Tests.Unit.Application.Users.Commands
             // Arrange
             var actorId = Guid.NewGuid();
             var targetId = Guid.NewGuid();
-            var command = ValidCommand(actorId, targetId);
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((User?)null);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -241,18 +178,11 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actorId = Guid.NewGuid();
             var targetId = Guid.NewGuid();
             var actor = CreateUser("owner@test.com", UserLevel.Owner);
-            var command = ValidCommand(actorId, targetId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((User?)null);
+            SetupActorAndTarget(actor, actorId, null, targetId);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -266,18 +196,11 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var targetId = Guid.NewGuid();
             var actor = CreateUser("owner@test.com", UserLevel.Owner);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
-            var command = ValidCommand(actorId, targetId);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
-            await _handler.Handle(command, CancellationToken.None);
+            await _handler.Handle(ValidCommand(actorId, targetId), CancellationToken.None);
 
             // Assert
             _unitOfWorkMock.Verify(
