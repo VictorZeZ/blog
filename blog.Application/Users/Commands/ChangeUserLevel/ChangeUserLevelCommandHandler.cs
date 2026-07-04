@@ -12,14 +12,8 @@ namespace blog.Application.Users.Commands.ChangeUserLevel
     {
         public async Task<ChangeUserLevelResponse> Handle(ChangeUserLevelCommand request, CancellationToken cancellationToken)
         {
-            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken);
-            if (actor is null)
-                throw new NotFoundException("User", request.ActorId);
-
-            actor.EnsureActive();
-
-            if (!actor.IsElevated())
-                throw new ForbiddenException("change_user_level");
+            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken)
+                ?? throw new NotFoundException("User", request.ActorId);
 
             var target = await userRepository.GetByIdAsync(new UserId(request.TargetUserId), cancellationToken);
             if (target is null)

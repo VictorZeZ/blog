@@ -1,8 +1,5 @@
 ﻿using blog.Domain.Common;
-using blog.Domain.Exceptions;
-using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
-using blog.Domain.Users.Types;
 using MediatR;
 
 namespace blog.Application.Users.Queries.GetUsers
@@ -11,15 +8,6 @@ namespace blog.Application.Users.Queries.GetUsers
     {
         public async Task<PagedResult<GetUsersResponse>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
         {
-            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken);
-            if (actor is null)
-                throw new NotFoundException("User", request.ActorId);
-
-            actor.EnsureActive();
-
-            if (!actor.IsElevated())
-                throw new ForbiddenException("get_users");
-
             var result = await userRepository.GetAllAsync(
                 request.Paging,
                 request.SortBy,

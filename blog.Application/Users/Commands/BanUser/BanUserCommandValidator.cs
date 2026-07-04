@@ -10,12 +10,9 @@ namespace blog.Application.Users.Commands.BanUser
                 .NotEmpty();
 
             RuleFor(x => x.TargetUserId)
-                .NotEmpty();
-
-            RuleFor(x => x.TargetUserId)
                 .NotEmpty()
                 .NotEqual(x => x.ActorId)
-                .WithMessage("Actor and target cannot be the same user");
+                    .WithMessage("Actor and target cannot be the same user");
         }
     }
 }

@@ -200,7 +200,6 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         [Fact]
         public async Task Handle_NoTitleImageStream_DoesNotCallFileStorageService()
         {
-            // Arrange
             var author = CreateAuthor(UserLevel.Author);
 
             var command = new CreatePostCommand
@@ -216,10 +215,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
 
-            // Act
             await _handler.Handle(command, CancellationToken.None);
 
-            // Assert
             _fileStorageServiceMock.Verify(
                 x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<StorageFolder>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -239,7 +236,9 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 Content = "Some content",
                 Tags = ["dotnet"],
                 TitleImageStream = stream,
-                TitleImageFileName = "cover.jpg"
+                TitleImageFileName = "cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 1024 * 500
             };
 
             _userRepositoryMock
@@ -363,6 +362,60 @@ namespace blog.Tests.Unit.Application.Posts.Commands
 
             // Assert
             await act.Should().ThrowAsync<InvalidStateException>();
+        }
+
+        [Fact]
+        public async Task Handle_TitleImageTooLarge_ThrowsPayloadTooLargeException()
+        {
+            var author = CreateAuthor(UserLevel.Author);
+            using var stream = new MemoryStream();
+
+            var command = new CreatePostCommand
+            {
+                AuthorId = author.Id.Value,
+                Title = "My First Post",
+                Content = "Some content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 10 * 1024 * 1024 // 10 MB — بالای سقف ۵ مگابایتی
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(author);
+
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            await act.Should().ThrowAsync<PayloadTooLargeException>();
+        }
+
+        [Fact]
+        public async Task Handle_UnsupportedContentType_ThrowsUnsupportedMediaTypeException()
+        {
+            var author = CreateAuthor(UserLevel.Author);
+            using var stream = new MemoryStream();
+
+            var command = new CreatePostCommand
+            {
+                AuthorId = author.Id.Value,
+                Title = "My First Post",
+                Content = "Some content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.pdf",
+                TitleImageContentType = "application/pdf",
+                TitleImageSizeBytes = 1024
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(author);
+
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            await act.Should().ThrowAsync<UnsupportedMediaTypeException>();
         }
     }
 }

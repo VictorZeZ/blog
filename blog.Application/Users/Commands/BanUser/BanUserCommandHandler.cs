@@ -1,7 +1,6 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Users.Enums;
-using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
@@ -12,14 +11,8 @@ namespace blog.Application.Users.Commands.BanUser
     {
         public async Task<BanUserResponse> Handle(BanUserCommand request, CancellationToken cancellationToken)
         {
-            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken);
-            if (actor is null)
-                throw new NotFoundException("User", request.ActorId);
-
-            actor.EnsureActive();
-
-            if (!actor.IsElevated())
-                throw new ForbiddenException("ban_user");
+            var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken)
+                ?? throw new NotFoundException("User", request.ActorId);
 
             var target = await userRepository.GetByIdAsync(new UserId(request.TargetUserId), cancellationToken);
             if (target is null)

@@ -45,6 +45,17 @@ namespace blog.Tests.Unit.Application.Users.Commands
             IsBanned = false
         };
 
+        private void SetupActorAndTarget(User actor, Guid actorId, User? target, Guid targetId)
+        {
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(actor);
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(target);
+        }
+
         [Fact]
         public async Task Handle_AdminBanningNormalUser_ReturnsSuccess()
         {
@@ -54,13 +65,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var result = await _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
@@ -80,13 +85,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var target = CreateUser("normal@test.com", UserLevel.Normal);
             target.Ban();
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var result = await _handler.Handle(UnbanCommand(actorId, targetId), CancellationToken.None);
@@ -94,44 +93,6 @@ namespace blog.Tests.Unit.Application.Users.Commands
             // Assert
             result.Should().NotBeNull();
             result.IsBanned.Should().BeFalse();
-        }
-
-        [Fact]
-        public async Task Handle_NormalUserBanning_ThrowsForbiddenException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var targetId = Guid.NewGuid();
-            var actor = CreateUser("normal@test.com", UserLevel.Normal);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
-        public async Task Handle_AuthorBanning_ThrowsForbiddenException()
-        {
-            // Arrange
-            var actorId = Guid.NewGuid();
-            var targetId = Guid.NewGuid();
-            var actor = CreateUser("author@test.com", UserLevel.Author);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            // Act
-            var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
         }
 
         [Fact]
@@ -143,13 +104,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("owner@test.com", UserLevel.Owner);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
@@ -167,13 +122,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("admin2@test.com", UserLevel.Admin);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
@@ -192,13 +141,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var target = CreateUser("normal@test.com", UserLevel.Normal);
             target.Ban();
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
@@ -216,13 +159,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             var act = () => _handler.Handle(UnbanCommand(actorId, targetId), CancellationToken.None);
@@ -257,13 +194,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var targetId = Guid.NewGuid();
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((User?)null);
+            SetupActorAndTarget(actor, actorId, null, targetId);
 
             // Act
             var act = () => _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);
@@ -281,13 +212,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
             var actor = CreateUser("admin@test.com", UserLevel.Admin);
             var target = CreateUser("normal@test.com", UserLevel.Normal);
 
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(actorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(actor);
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(targetId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(target);
+            SetupActorAndTarget(actor, actorId, target, targetId);
 
             // Act
             await _handler.Handle(BanCommand(actorId, targetId), CancellationToken.None);

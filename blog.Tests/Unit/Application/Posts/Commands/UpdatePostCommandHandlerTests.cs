@@ -308,7 +308,9 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
                 TitleImageStream = stream,
-                TitleImageFileName = "new-cover.jpg"
+                TitleImageFileName = "new-cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 1024 * 500
             };
 
             SetupActorAndPost(author, post);
@@ -348,7 +350,9 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
                 TitleImageStream = stream,
-                TitleImageFileName = "new-cover.jpg"
+                TitleImageFileName = "new-cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 1024 * 500
             };
 
             SetupActorAndPost(author, post);
@@ -364,6 +368,66 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _fileStorageServiceMock.Verify(
                 x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_TitleImageTooLarge_ThrowsPayloadTooLargeException()
+        {
+            // Arrange
+            var author = CreateUser("author@test.com", UserLevel.Author);
+            var post = CreatePost(author);
+            using var stream = new MemoryStream();
+
+            var command = new UpdatePostCommand
+            {
+                ActorId = author.Id.Value,
+                PostId = post.Id.Value,
+                Title = "Updated Title",
+                Content = "Updated content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 10 * 1024 * 1024
+            };
+
+            SetupActorAndPost(author, post);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<PayloadTooLargeException>();
+        }
+
+        [Fact]
+        public async Task Handle_UnsupportedContentType_ThrowsUnsupportedMediaTypeException()
+        {
+            // Arrange
+            var author = CreateUser("author@test.com", UserLevel.Author);
+            var post = CreatePost(author);
+            using var stream = new MemoryStream();
+
+            var command = new UpdatePostCommand
+            {
+                ActorId = author.Id.Value,
+                PostId = post.Id.Value,
+                Title = "Updated Title",
+                Content = "Updated content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.pdf",
+                TitleImageContentType = "application/pdf",
+                TitleImageSizeBytes = 1024
+            };
+
+            SetupActorAndPost(author, post);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<UnsupportedMediaTypeException>();
         }
 
         [Fact]

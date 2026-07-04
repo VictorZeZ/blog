@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Users.Common;
+using FluentValidation;
 
 namespace blog.Application.Users.Commands.Register
 {
@@ -24,19 +25,7 @@ namespace blog.Application.Users.Commands.Register
                 .MaximumLength(512);
 
             RuleFor(x => x.Password)
-                .NotEmpty()
-                .MinimumLength(8)
-                .MaximumLength(128)
-                .Matches("[A-Z]")
-                    .WithMessage("Password must contain at least one uppercase letter.")
-                .Matches("[a-z]")
-                    .WithMessage("Password must contain at least one lowercase letter.")
-                .Matches("[0-9]")
-                    .WithMessage("Password must contain at least one number.")
-                .Matches(@"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>/?]")
-                    .WithMessage("Password must contain at least one special character.")
-                .Must(p => !p.Contains(' '))
-                    .WithMessage("Password cannot contain spaces.");
+                .ApplyPasswordRules();
         }
     }
 }
