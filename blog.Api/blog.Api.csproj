@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>34838c63-a85e-4587-a491-3a2a54d93e66</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.16.7" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.10" />
   </ItemGroup>
 
   <ItemGroup>
