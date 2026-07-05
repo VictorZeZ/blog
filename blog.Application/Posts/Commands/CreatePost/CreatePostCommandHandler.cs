@@ -33,6 +33,7 @@ namespace blog.Application.Posts.Commands.CreatePost
             if (request.TitleImageStream is not null)
             {
                 PostImageValidationRules.EnsureValid(request.TitleImageFileName!, request.TitleImageSizeBytes, request.TitleImageContentType!);
+                await PostImageValidationRules.EnsureValidContentAsync(request.TitleImageStream, request.TitleImageContentType!, cancellationToken);
 
                 titleImageUrl = await fileStorageService.UploadAsync(request.TitleImageStream, request.TitleImageFileName!, StorageFolder.Posts, cancellationToken);
             }

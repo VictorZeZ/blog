@@ -74,6 +74,8 @@ namespace blog.Application.Posts.Commands.UpdatePost
                 request.TitleImageSizeBytes,
                 request.TitleImageContentType!);
 
+            await PostImageValidationRules.EnsureValidContentAsync(request.TitleImageStream, request.TitleImageContentType!, ct);
+
             var uploadedUrl = await fileStorageService.UploadAsync(request.TitleImageStream, request.TitleImageFileName!, StorageFolder.Posts, ct);
 
             if (currentImageUrl is not null)

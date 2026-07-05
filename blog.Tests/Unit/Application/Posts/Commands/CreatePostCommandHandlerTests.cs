@@ -31,6 +31,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 _unitOfWorkMock.Object);
         }
 
+        private static MemoryStream CreateFakeJpegStream()
+        {
+            byte[] header = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01];
+            return new MemoryStream(header);
+        }
+
         private static User CreateAuthor(UserLevel level)
         {
             var user = new User("author@test.com", "Ali", "Rezaei", "hashed_password");
@@ -227,7 +233,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
-            using var stream = new MemoryStream();
+            using var stream = CreateFakeJpegStream();
 
             var command = new CreatePostCommand
             {
@@ -256,6 +262,36 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _fileStorageServiceMock.Verify(
                 x => x.UploadAsync(stream, command.TitleImageFileName!, StorageFolder.Posts, It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_ImageContentDoesNotMatchDeclaredType_ThrowsUnsupportedMediaTypeException()
+        {
+            // Arrange
+            var author = CreateAuthor(UserLevel.Author);
+            using var stream = new MemoryStream("this is not an image file at all"u8.ToArray());
+
+            var command = new CreatePostCommand
+            {
+                AuthorId = author.Id.Value,
+                Title = "My First Post",
+                Content = "Some content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 1024
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(author);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<UnsupportedMediaTypeException>();
         }
 
         [Fact]

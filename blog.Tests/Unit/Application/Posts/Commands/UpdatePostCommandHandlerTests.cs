@@ -30,6 +30,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 _unitOfWorkMock.Object);
         }
 
+        private static MemoryStream CreateFakeJpegStream()
+        {
+            byte[] header = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01];
+            return new MemoryStream(header);
+        }
+
         private static User CreateUser(string email, UserLevel level)
         {
             var user = new User(email, "Ali", "Rezaei", "hashed_password");
@@ -298,7 +304,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, "https://cloudinary.com/posts/old.jpg");
-            using var stream = new MemoryStream();
+            using var stream = CreateFakeJpegStream();
 
             var command = new UpdatePostCommand
             {
@@ -340,7 +346,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, titleImageUrl: null);
-            using var stream = new MemoryStream();
+            using var stream = CreateFakeJpegStream();
 
             var command = new UpdatePostCommand
             {
@@ -368,6 +374,36 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _fileStorageServiceMock.Verify(
                 x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_ImageContentDoesNotMatchDeclaredType_ThrowsUnsupportedMediaTypeException()
+        {
+            // Arrange
+            var author = CreateUser("author@test.com", UserLevel.Author);
+            var post = CreatePost(author);
+            using var stream = new MemoryStream("this is not an image file at all"u8.ToArray());
+
+            var command = new UpdatePostCommand
+            {
+                ActorId = author.Id.Value,
+                PostId = post.Id.Value,
+                Title = "Updated Title",
+                Content = "Updated content",
+                Tags = ["dotnet"],
+                TitleImageStream = stream,
+                TitleImageFileName = "cover.jpg",
+                TitleImageContentType = "image/jpeg",
+                TitleImageSizeBytes = 1024
+            };
+
+            SetupActorAndPost(author, post);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<UnsupportedMediaTypeException>();
         }
 
         [Fact]
