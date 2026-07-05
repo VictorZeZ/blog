@@ -7,6 +7,7 @@ using blog.Application.Users.Commands.Register;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace blog.Api.Controllers
 {
@@ -14,6 +15,7 @@ namespace blog.Api.Controllers
     {
         [HttpPost("register")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
         {
             var command = new RegisterCommand
@@ -31,6 +33,7 @@ namespace blog.Api.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
         {
             var command = new LoginCommand
@@ -54,6 +57,7 @@ namespace blog.Api.Controllers
 
         [HttpPost("refresh")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
         {
             var command = new RefreshTokenCommand

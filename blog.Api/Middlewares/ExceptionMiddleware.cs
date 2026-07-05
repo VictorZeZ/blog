@@ -1,9 +1,9 @@
-﻿using blog.Domain.Exceptions;
-using System.Text.Json;
+﻿using blog.Api.Common;
+using blog.Domain.Exceptions;
 
 namespace blog.Api.Middlewares
 {
-    public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+    public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IWebHostEnvironment env)
     {
         public async Task InvokeAsync(HttpContext context)
         {
@@ -14,32 +14,18 @@ namespace blog.Api.Middlewares
             catch (DomainException ex)
             {
                 logger.LogWarning(ex, "Domain exception occurred: {ErrorCode}", ex.ErrorCode);
-                await WriteDomainExceptionResponseAsync(context, ex);
+                await DomainExceptionResponseWriter.WriteAsync(context, ex);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected exception occurred");
-                await WriteDomainExceptionResponseAsync(context, new UnknownException(ex.Message));
+
+                var unknownException = env.IsDevelopment()
+                    ? new UnknownException(ex.Message)
+                    : new UnknownException();
+
+                await DomainExceptionResponseWriter.WriteAsync(context, unknownException);
             }
-        }
-
-        private static async Task WriteDomainExceptionResponseAsync(HttpContext context, DomainException ex)
-        {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = ex.StatusCode;
-
-            var response = new
-            {
-                ex.StatusCode,
-                ex.ErrorCode,
-                ex.Title,
-                ex.Details
-            };
-
-            await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            }));
         }
     }
 }

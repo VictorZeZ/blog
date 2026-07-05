@@ -6,26 +6,33 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication();
+builder.Services.AddApiCors(builder.Configuration);
+builder.Services.AddApiRateLimiting();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocumentation();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseApiDocumentation();
     app.UseRequestLogging();
 }
+else
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
+app.UseSecurityHeaders();
+app.UseApiCors();
 
 app.UseExceptionMiddleware();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
