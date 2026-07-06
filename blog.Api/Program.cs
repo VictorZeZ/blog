@@ -6,6 +6,8 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.ConfigureRequestLimits();
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication();
