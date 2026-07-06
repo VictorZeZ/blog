@@ -8,7 +8,7 @@ namespace blog.Domain.Tokens.Entities
 {
     public class RefreshToken : Entity<RefreshTokenId>
     {
-        public string Token { get; private set; }
+        public string TokenHash { get; private set; }
         public DateTime ExpiresAt { get; private set; }
         public TokenStatus Status { get; private set; }
         public string DeviceInfo { get; private set; }
@@ -18,9 +18,9 @@ namespace blog.Domain.Tokens.Entities
 
         private RefreshToken() : base(RefreshTokenId.Empty) { }
 
-        public RefreshToken(string token, UserId userId, string deviceInfo, int expiryDays = 30) : base(RefreshTokenId.New())
+        public RefreshToken(string tokenHash, UserId userId, string deviceInfo, int expiryDays = 30) : base(RefreshTokenId.New())
         {
-            Token = token;
+            TokenHash = tokenHash;
             UserId = userId;
             DeviceInfo = deviceInfo;
             ExpiresAt = DateTime.UtcNow.AddDays(expiryDays);
@@ -30,12 +30,12 @@ namespace blog.Domain.Tokens.Entities
         public bool IsValid()
             => Status == TokenStatus.Active && ExpiresAt > DateTime.UtcNow;
 
-        public RefreshToken Rotate(string newToken, string deviceInfo, int expiryDays = 30)
+        public RefreshToken Rotate(string newTokenHash, string deviceInfo, int expiryDays = 30)
         {
             Status = TokenStatus.Used;
             MarkAsUpdated();
 
-            return new RefreshToken(newToken, UserId, deviceInfo, expiryDays);
+            return new RefreshToken(newTokenHash, UserId, deviceInfo, expiryDays);
         }
 
         public void Revoke()

@@ -5,13 +5,15 @@ using MediatR;
 
 namespace blog.Application.Users.Commands.Logout
 {
-    public class LogoutCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork) : IRequestHandler<LogoutCommand, LogoutResponse>
+    public class LogoutCommandHandler(IRefreshTokenRepository refreshTokenRepository, ITokenHasher tokenHasher, IUnitOfWork unitOfWork) : IRequestHandler<LogoutCommand, LogoutResponse>
     {
         public async Task<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
         {
-            var token = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
+            var tokenHash = tokenHasher.Hash(request.RefreshToken);
+
+            var token = await refreshTokenRepository.GetByTokenHashAsync(tokenHash, cancellationToken);
             if (token is null)
-                throw new NotFoundException("RefreshToken", request.RefreshToken);
+                throw new NotFoundException("RefreshToken", tokenHash);
 
             if (!token.IsValid())
                 throw new ExpiredException("RefreshToken");

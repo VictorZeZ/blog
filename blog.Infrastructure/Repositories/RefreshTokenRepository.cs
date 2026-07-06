@@ -9,8 +9,8 @@ namespace blog.Infrastructure.Repositories
 {
     public class RefreshTokenRepository(AppDbContext context) : IRefreshTokenRepository
     {
-        public async Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken ct = default)
-            => await context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == token, ct);
+        public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default)
+            => await context.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
 
         public async Task<IEnumerable<RefreshToken>> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default)
             => await context.RefreshTokens.Where(x => x.UserId == userId && x.Status == TokenStatus.Active).ToListAsync(ct);

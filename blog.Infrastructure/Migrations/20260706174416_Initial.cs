@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Migrations;
 using NpgsqlTypes;
 
 #nullable disable
@@ -6,7 +8,7 @@ using NpgsqlTypes;
 namespace blog.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -68,7 +70,7 @@ namespace blog.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Token = table.Column<string>(type: "text", maxLength: 256, nullable: false),
+                    TokenHash = table.Column<string>(type: "text", maxLength: 256, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     DeviceInfo = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
@@ -111,9 +113,9 @@ namespace blog.Infrastructure.Migrations
                 .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RefreshTokens_Token",
+                name: "IX_RefreshTokens_TokenHash",
                 table: "RefreshTokens",
-                column: "Token",
+                column: "TokenHash",
                 unique: true);
 
             migrationBuilder.CreateIndex(

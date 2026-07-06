@@ -20,11 +20,11 @@ namespace blog.Infrastructure.Persistence.Configurations
                     v => new RefreshTokenId(v))
                 .HasColumnType("uuid");
 
-            builder.Property(x => x.Token)
+            builder.Property(x => x.TokenHash)
                 .IsRequired()
                 .HasColumnType("text");
 
-            builder.HasIndex(x => x.Token)
+            builder.HasIndex(x => x.TokenHash)
                 .IsUnique();
 
             builder.Property(x => x.ExpiresAt)

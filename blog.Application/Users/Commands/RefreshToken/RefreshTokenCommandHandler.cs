@@ -7,13 +7,15 @@ using MediatR;
 
 namespace blog.Application.Users.Commands.RefreshToken
 {
-    public class RefreshTokenCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUserRepository userRepository, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
+    public class RefreshTokenCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUserRepository userRepository, ITokenHasher tokenHasher, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
     {
         public async Task<RefreshTokenResponse> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
         {
-            var token = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
+            var incomingTokenHash = tokenHasher.Hash(request.RefreshToken);
+
+            var token = await refreshTokenRepository.GetByTokenHashAsync(incomingTokenHash, cancellationToken);
             if (token is null)
-                throw new NotFoundException("RefreshToken", request.RefreshToken);
+                throw new NotFoundException("RefreshToken", incomingTokenHash);
 
             if (!token.IsValid())
                 throw new ExpiredException("RefreshToken");
@@ -25,7 +27,8 @@ namespace blog.Application.Users.Commands.RefreshToken
             user.EnsureActive();
 
             var newRefreshToken = jwtService.GenerateRefreshToken();
-            var rotated = token.Rotate(newRefreshToken, request.DeviceInfo);
+            var newRefreshTokenHash = tokenHasher.Hash(newRefreshToken);
+            var rotated = token.Rotate(newRefreshTokenHash, request.DeviceInfo);
 
             var accessToken = jwtService.GenerateAccessToken(user);
 

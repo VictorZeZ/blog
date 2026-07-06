@@ -6,7 +6,7 @@ namespace blog.Domain.Tokens.Repository
     public interface IRefreshTokenRepository
     {
         // Read
-        Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken ct = default);
+        Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default);
         Task<IEnumerable<RefreshToken>> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default);
 
         // Write

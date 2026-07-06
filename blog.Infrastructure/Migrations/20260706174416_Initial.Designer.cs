@@ -14,8 +14,8 @@ using blog.Infrastructure.Persistence;
 namespace blog.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260626200120_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260706174416_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -116,7 +116,7 @@ namespace blog.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Token")
+                    b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("text");
@@ -129,7 +129,7 @@ namespace blog.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Token")
+                    b.HasIndex("TokenHash")
                         .IsUnique();
 
                     b.HasIndex("UserId", "Status");
