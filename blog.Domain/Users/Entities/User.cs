@@ -21,6 +21,9 @@ namespace blog.Domain.Users.Entities
         public bool IsDeleted { get; private set; }
         public DateTime? DeletedAt { get; private set; }
 
+        public int FailedLoginAttempts { get; private set; }
+        public DateTime? LockedOutUntil { get; private set; }
+
         public ICollection<Post> Posts { get; private set; } = [];
         public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 
@@ -38,6 +41,7 @@ namespace blog.Domain.Users.Entities
         public void ChangePassword(string newPasswordHash)
         {
             PasswordHash = newPasswordHash;
+            ResetFailedLoginAttempts();
             MarkAsUpdated();
         }
 
@@ -72,6 +76,26 @@ namespace blog.Domain.Users.Entities
         public void Promote(UserLevel level)
         {
             Level = level;
+            MarkAsUpdated();
+        }
+
+        public bool IsLockedOut()
+            => LockedOutUntil is not null && LockedOutUntil > DateTime.UtcNow;
+
+        public void RegisterFailedLoginAttempt(int maxFailedAttempts, TimeSpan lockoutDuration)
+        {
+            FailedLoginAttempts++;
+
+            if (FailedLoginAttempts >= maxFailedAttempts)
+                LockedOutUntil = DateTime.UtcNow.Add(lockoutDuration);
+
+            MarkAsUpdated();
+        }
+
+        public void ResetFailedLoginAttempts()
+        {
+            FailedLoginAttempts = 0;
+            LockedOutUntil = null;
             MarkAsUpdated();
         }
 

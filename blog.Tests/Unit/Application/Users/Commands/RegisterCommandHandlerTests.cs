@@ -14,6 +14,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+        private readonly Mock<ITokenHasher> _tokenHasherMock = new();
         private readonly Mock<IJwtService> _jwtServiceMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly RegisterCommandHandler _handler;
@@ -24,8 +25,13 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 _userRepositoryMock.Object,
                 _refreshTokenRepositoryMock.Object,
                 _passwordHasherMock.Object,
+                _tokenHasherMock.Object,
                 _jwtServiceMock.Object,
                 _unitOfWorkMock.Object);
+
+            _tokenHasherMock
+                .Setup(x => x.Hash(It.IsAny<string>()))
+                .Returns("hashed_refresh_token");
         }
 
         [Fact]
@@ -48,6 +54,14 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.Hash(command.Password))
                 .Returns("hashed_password");
 
+            _jwtServiceMock
+                .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
+                .Returns("access_token");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateRefreshToken())
+                .Returns("refresh_token");
+
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -56,6 +70,8 @@ namespace blog.Tests.Unit.Application.Users.Commands
             result.Email.Should().Be(command.Email);
             result.FullName.Should().Be($"{command.FirstName} {command.LastName}");
             result.Id.Should().NotBeEmpty();
+            result.AccessToken.Should().Be("access_token");
+            result.RefreshToken.Should().Be("refresh_token");
         }
 
         [Fact]
@@ -101,6 +117,14 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.Hash(command.Password))
                 .Returns("hashed_password");
 
+            _jwtServiceMock
+                .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
+                .Returns("access_token");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateRefreshToken())
+                .Returns("refresh_token");
+
             // Act
             await _handler.Handle(command, CancellationToken.None);
 
@@ -127,6 +151,14 @@ namespace blog.Tests.Unit.Application.Users.Commands
             _passwordHasherMock
                 .Setup(x => x.Hash(command.Password))
                 .Returns("hashed_password");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
+                .Returns("access_token");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateRefreshToken())
+                .Returns("refresh_token");
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
@@ -157,12 +189,57 @@ namespace blog.Tests.Unit.Application.Users.Commands
                 .Setup(x => x.Hash(command.Password))
                 .Returns("hashed_password");
 
+            _jwtServiceMock
+                .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
+                .Returns("access_token");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateRefreshToken())
+                .Returns("refresh_token");
+
             // Act
             await _handler.Handle(command, CancellationToken.None);
 
             // Assert
             _userRepositoryMock.Verify(
                 x => x.AddAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_ValidCommand_AddsRefreshToken()
+        {
+            // Arrange
+            var command = new RegisterCommand
+            {
+                Email = "test@test.com",
+                FirstName = "Ali",
+                LastName = "Rezaei",
+                Password = "Password123"
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.ExistsByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            _passwordHasherMock
+                .Setup(x => x.Hash(command.Password))
+                .Returns("hashed_password");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
+                .Returns("access_token");
+
+            _jwtServiceMock
+                .Setup(x => x.GenerateRefreshToken())
+                .Returns("refresh_token");
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            _refreshTokenRepositoryMock.Verify(
+                x => x.AddAsync(It.IsAny<blog.Domain.Tokens.Entities.RefreshToken>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
     }

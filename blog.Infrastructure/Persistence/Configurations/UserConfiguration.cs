@@ -55,6 +55,11 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            builder.Property(x => x.FailedLoginAttempts)
+                .HasColumnType("integer")
+                .HasDefaultValue(0)
+                .IsRequired();
+
             builder.HasMany(x => x.Posts)
                 .WithOne(x => x.Author)
                 .HasForeignKey(x => x.AuthorId)

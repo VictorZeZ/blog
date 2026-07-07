@@ -35,6 +35,11 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<AccountLockoutSettings>()
+            .BindConfiguration(nameof(AccountLockoutSettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenHasher, TokenHasher>();
