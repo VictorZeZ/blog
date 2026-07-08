@@ -10,6 +10,9 @@ namespace blog.Application.Posts.Commands.CreatePost
             RuleFor(x => x.AuthorId)
                 .NotEmpty();
 
+            RuleFor(x => x.CategoryId)
+                .NotEmpty();
+
             RuleFor(x => x.Title)
                 .NotEmpty()
                 .MaximumLength(256);

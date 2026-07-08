@@ -1,4 +1,5 @@
 ﻿using blog.Application.Posts.Queries.SearchPosts;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -62,7 +63,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var query = ValidQuery;
             var author = CreateAuthor(UserLevel.Admin);
-            var posts = new List<Post> { new("EF Core Migrations Guide", null, "Content", ["dotnet"], author) };
+            var posts = new List<Post> { new("EF Core Migrations Guide", null, "Content", ["dotnet"], author, CategoryId.New()) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

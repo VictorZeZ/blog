@@ -1,4 +1,6 @@
-﻿using blog.Domain.Common.Enum;
+﻿using blog.Domain.Categories.Repository;
+using blog.Domain.Categories.Types;
+using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Common;
@@ -12,7 +14,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.UpdatePost
 {
-    public class UpdatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<UpdatePostCommand, UpdatePostResponse>
+    public class UpdatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<UpdatePostCommand, UpdatePostResponse>
     {
         public async Task<UpdatePostResponse> Handle(UpdatePostCommand request, CancellationToken cancellationToken)
         {
@@ -29,6 +31,11 @@ namespace blog.Application.Posts.Commands.UpdatePost
             if (!actor.CanManagePost(post.AuthorId))
                 throw new ForbiddenException("update_post");
 
+            var categoryId = new CategoryId(request.CategoryId);
+            var category = await categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category is null)
+                throw new NotFoundException("Category", request.CategoryId);
+
             var newSlug = Post.GenerateSlug(request.Title);
             if (newSlug != post.Slug)
             {
@@ -41,7 +48,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
 
             var requiresReapproval = !actor.IsElevated();
 
-            post.Update(request.Title, titleImageUrl, request.Content, request.Tags, requiresReapproval);
+            post.Update(request.Title, titleImageUrl, request.Content, request.Tags, requiresReapproval, categoryId);
 
             postRepository.Update(post);
             await unitOfWork.SaveChangesAsync(cancellationToken);

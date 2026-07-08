@@ -1,4 +1,5 @@
 ﻿using blog.Application.Posts.Commands.DeletePost;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
@@ -40,7 +41,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         private static Post CreatePost(User author, string? titleImageUrl = null)
-            => new("My First Post", titleImageUrl, "Some content", ["dotnet"], author);
+            => new("My First Post", titleImageUrl, "Some content", ["dotnet"], author, CategoryId.New());
 
         private static DeletePostCommand ValidCommand(Guid actorId, Guid postId) => new()
         {

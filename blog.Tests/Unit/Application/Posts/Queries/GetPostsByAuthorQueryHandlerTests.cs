@@ -1,4 +1,5 @@
 ﻿using blog.Application.Posts.Queries.GetPostsByAuthor;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -171,7 +172,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Admin);
             var query = QueryFor(author.Id.Value);
-            var posts = new List<Post> { new("My Post", null, "Content", ["dotnet"], author) };
+            var posts = new List<Post> { new("My Post", null, "Content", ["dotnet"], author, CategoryId.New()) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

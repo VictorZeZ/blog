@@ -1,4 +1,7 @@
 ﻿using blog.Application.Posts.Commands.CreatePost;
+using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Repository;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
@@ -18,6 +21,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
     {
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IPostRepository> _postRepositoryMock = new();
+        private readonly Mock<ICategoryRepository> _categoryRepositoryMock = new();
         private readonly Mock<IFileStorageService> _fileStorageServiceMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly CreatePostCommandHandler _handler;
@@ -27,6 +31,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _handler = new CreatePostCommandHandler(
                 _userRepositoryMock.Object,
                 _postRepositoryMock.Object,
+                _categoryRepositoryMock.Object,
                 _fileStorageServiceMock.Object,
                 _unitOfWorkMock.Object);
         }
@@ -46,15 +51,26 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             return user;
         }
 
+        private static Category ValidCategory => new("Technology");
+
+        private void SetupValidCategory(CategoryId categoryId)
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ValidCategory);
+        }
+
         [Fact]
         public async Task Handle_ValidCommand_ReturnsCreatePostResponse()
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet", "ef-core"]
@@ -63,6 +79,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -81,6 +99,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var command = new CreatePostCommand
             {
                 AuthorId = Guid.NewGuid(),
+                CategoryId = Guid.NewGuid(),
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -106,6 +125,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = Guid.NewGuid(),
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -123,14 +143,16 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
-        public async Task Handle_AuthorLevelUser_PostStatusIsPendingApproval()
+        public async Task Handle_CategoryNotFound_ThrowsNotFoundException()
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -139,6 +161,39 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Category?)null);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+
+        [Fact]
+        public async Task Handle_AuthorLevelUser_PostStatusIsPendingApproval()
+        {
+            // Arrange
+            var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
+
+            var command = new CreatePostCommand
+            {
+                AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
+                Title = "My First Post",
+                Content = "Some content",
+                Tags = ["dotnet"]
+            };
+
+            _userRepositoryMock
+                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -154,10 +209,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(level);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -166,6 +223,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -179,10 +238,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -191,6 +252,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             _postRepositoryMock
                 .Setup(x => x.ExistsBySlugAsync("my-first-post", It.IsAny<CancellationToken>()))
@@ -207,10 +270,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_NoTitleImageStream_DoesNotCallFileStorageService()
         {
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"],
@@ -220,6 +285,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             await _handler.Handle(command, CancellationToken.None);
 
@@ -233,11 +300,13 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
             using var stream = CreateFakeJpegStream();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"],
@@ -250,6 +319,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             _fileStorageServiceMock
                 .Setup(x => x.UploadAsync(stream, command.TitleImageFileName!, StorageFolder.Posts, It.IsAny<CancellationToken>()))
@@ -269,11 +340,13 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream("this is not an image file at all"u8.ToArray());
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"],
@@ -287,6 +360,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
 
+            SetupValidCategory(categoryId);
+
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -299,10 +374,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -311,6 +388,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
@@ -326,10 +405,12 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -338,6 +419,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
@@ -358,6 +441,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = Guid.NewGuid(),
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -384,6 +468,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = Guid.NewGuid(),
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"]
@@ -404,23 +489,27 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_TitleImageTooLarge_ThrowsPayloadTooLargeException()
         {
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"],
                 TitleImageStream = stream,
                 TitleImageFileName = "cover.jpg",
                 TitleImageContentType = "image/jpeg",
-                TitleImageSizeBytes = 10 * 1024 * 1024 // 10 MB — بالای سقف ۵ مگابایتی
+                TitleImageSizeBytes = 10 * 1024 * 1024
             };
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -431,11 +520,13 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_UnsupportedContentType_ThrowsUnsupportedMediaTypeException()
         {
             var author = CreateAuthor(UserLevel.Author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream();
 
             var command = new CreatePostCommand
             {
                 AuthorId = author.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "My First Post",
                 Content = "Some content",
                 Tags = ["dotnet"],
@@ -448,6 +539,8 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(author);
+
+            SetupValidCategory(categoryId);
 
             var act = () => _handler.Handle(command, CancellationToken.None);
 

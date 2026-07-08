@@ -26,6 +26,7 @@ namespace blog.Api.Controllers
             var command = new CreatePostCommand
             {
                 AuthorId = CurrentUserId,
+                CategoryId = request.CategoryId,
                 Title = request.Title,
                 Content = request.Content,
                 Tags = request.Tags,
@@ -48,6 +49,7 @@ namespace blog.Api.Controllers
             {
                 ActorId = CurrentUserId,
                 PostId = postId,
+                CategoryId = request.CategoryId,
                 Title = request.Title,
                 Content = request.Content,
                 Tags = request.Tags,

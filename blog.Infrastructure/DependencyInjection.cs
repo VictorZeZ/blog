@@ -1,4 +1,5 @@
-﻿using blog.Domain.Common.Interfaces;
+﻿using blog.Domain.Categories.Repository;
+using blog.Domain.Common.Interfaces;
 using blog.Domain.Common.Settings;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Tokens.Repository;
@@ -23,6 +24,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddOptions<JwtSettings>()

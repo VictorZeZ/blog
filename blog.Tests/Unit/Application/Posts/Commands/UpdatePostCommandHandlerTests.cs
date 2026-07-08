@@ -1,4 +1,7 @@
 ﻿using blog.Application.Posts.Commands.UpdatePost;
+using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Repository;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
@@ -17,6 +20,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
     {
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IPostRepository> _postRepositoryMock = new();
+        private readonly Mock<ICategoryRepository> _categoryRepositoryMock = new();
         private readonly Mock<IFileStorageService> _fileStorageServiceMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly UpdatePostCommandHandler _handler;
@@ -26,6 +30,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             _handler = new UpdatePostCommandHandler(
                 _userRepositoryMock.Object,
                 _postRepositoryMock.Object,
+                _categoryRepositoryMock.Object,
                 _fileStorageServiceMock.Object,
                 _unitOfWorkMock.Object);
         }
@@ -46,12 +51,15 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         private static Post CreatePost(User author, string? titleImageUrl = null)
-            => new("Original Title", titleImageUrl, "Original content", ["dotnet"], author);
+            => new("Original Title", titleImageUrl, "Original content", ["dotnet"], author, CategoryId.New());
 
-        private static UpdatePostCommand ValidCommand(Guid actorId, Guid postId) => new()
+        private static Category ValidCategory => new("Technology");
+
+        private static UpdatePostCommand ValidCommand(Guid actorId, Guid postId, Guid categoryId) => new()
         {
             ActorId = actorId,
             PostId = postId,
+            CategoryId = categoryId,
             Title = "Updated Title",
             Content = "Updated content",
             Tags = ["dotnet", "csharp"]
@@ -68,15 +76,24 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 .ReturnsAsync(post);
         }
 
+        private void SetupValidCategory(CategoryId categoryId)
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ValidCategory);
+        }
+
         [Fact]
         public async Task Handle_OwnerActor_ReturnsUpdatePostResponse()
         {
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -97,9 +114,11 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var author = CreateUser("author@test.com", UserLevel.Author);
             var actor = CreateUser("moderator@test.com", actorLevel);
             var post = CreatePost(author);
-            var command = ValidCommand(actor.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(actor.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(actor, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -118,7 +137,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var author = CreateUser("author@test.com", UserLevel.Author);
             var actor = CreateUser("other@test.com", actorLevel);
             var post = CreatePost(author);
-            var command = ValidCommand(actor.Id.Value, post.Id.Value);
+            var command = ValidCommand(actor.Id.Value, post.Id.Value, Guid.NewGuid());
 
             SetupActorAndPost(actor, post);
 
@@ -133,7 +152,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_ActorNotFound_ThrowsNotFoundException()
         {
             // Arrange
-            var command = ValidCommand(Guid.NewGuid(), Guid.NewGuid());
+            var command = ValidCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(new UserId(command.ActorId), It.IsAny<CancellationToken>()))
@@ -152,7 +171,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var actor = CreateUser("author@test.com", UserLevel.Author);
             actor.SoftDelete();
-            var command = ValidCommand(actor.Id.Value, Guid.NewGuid());
+            var command = ValidCommand(actor.Id.Value, Guid.NewGuid(), Guid.NewGuid());
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(actor.Id, It.IsAny<CancellationToken>()))
@@ -171,7 +190,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var actor = CreateUser("author@test.com", UserLevel.Author);
             actor.Ban();
-            var command = ValidCommand(actor.Id.Value, Guid.NewGuid());
+            var command = ValidCommand(actor.Id.Value, Guid.NewGuid(), Guid.NewGuid());
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(actor.Id, It.IsAny<CancellationToken>()))
@@ -189,7 +208,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         {
             // Arrange
             var actor = CreateUser("author@test.com", UserLevel.Author);
-            var command = ValidCommand(actor.Id.Value, Guid.NewGuid());
+            var command = ValidCommand(actor.Id.Value, Guid.NewGuid(), Guid.NewGuid());
 
             _userRepositoryMock
                 .Setup(x => x.GetByIdAsync(actor.Id, It.IsAny<CancellationToken>()))
@@ -207,14 +226,38 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
+        public async Task Handle_CategoryNotFound_ThrowsNotFoundException()
+        {
+            // Arrange
+            var author = CreateUser("author@test.com", UserLevel.Author);
+            var post = CreatePost(author);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
+
+            SetupActorAndPost(author, post);
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Category?)null);
+
+            // Act
+            var act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+
+        [Fact]
         public async Task Handle_TitleChangedToExistingSlug_ThrowsAlreadyExistsException()
         {
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             _postRepositoryMock
                 .Setup(x => x.ExistsBySlugAsync("updated-title", It.IsAny<CancellationToken>()))
@@ -233,17 +276,20 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
+            var categoryId = CategoryId.New();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = post.Title,
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"]
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
@@ -260,9 +306,11 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             _postRepositoryMock
                 .Setup(x => x.ExistsBySlugAsync("updated-title", It.IsAny<CancellationToken>()))
@@ -281,9 +329,11 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, "https://cloudinary.com/posts/old.jpg");
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -304,12 +354,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, "https://cloudinary.com/posts/old.jpg");
+            var categoryId = CategoryId.New();
             using var stream = CreateFakeJpegStream();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
@@ -320,6 +372,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             _fileStorageServiceMock
                 .Setup(x => x.UploadAsync(stream, "new-cover.jpg", StorageFolder.Posts, It.IsAny<CancellationToken>()))
@@ -346,12 +399,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, titleImageUrl: null);
+            var categoryId = CategoryId.New();
             using var stream = CreateFakeJpegStream();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
@@ -362,6 +417,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             _fileStorageServiceMock
                 .Setup(x => x.UploadAsync(stream, "new-cover.jpg", StorageFolder.Posts, It.IsAny<CancellationToken>()))
@@ -382,12 +438,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream("this is not an image file at all"u8.ToArray());
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet"],
@@ -398,6 +456,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
@@ -412,12 +471,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet"],
@@ -428,6 +489,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
@@ -442,12 +504,14 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
+            var categoryId = CategoryId.New();
             using var stream = new MemoryStream();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet"],
@@ -458,6 +522,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var act = () => _handler.Handle(command, CancellationToken.None);
@@ -472,11 +537,13 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, "https://cloudinary.com/posts/old.jpg");
+            var categoryId = CategoryId.New();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
@@ -484,6 +551,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -506,11 +574,13 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author, titleImageUrl: null);
+            var categoryId = CategoryId.New();
 
             var command = new UpdatePostCommand
             {
                 ActorId = author.Id.Value,
                 PostId = post.Id.Value,
+                CategoryId = categoryId.Value,
                 Title = "Updated Title",
                 Content = "Updated content",
                 Tags = ["dotnet", "csharp"],
@@ -518,6 +588,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -536,9 +607,11 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);
@@ -555,9 +628,11 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Author);
             var post = CreatePost(author);
-            var command = ValidCommand(author.Id.Value, post.Id.Value);
+            var categoryId = CategoryId.New();
+            var command = ValidCommand(author.Id.Value, post.Id.Value, categoryId.Value);
 
             SetupActorAndPost(author, post);
+            SetupValidCategory(categoryId);
 
             // Act
             await _handler.Handle(command, CancellationToken.None);

@@ -1,4 +1,7 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Types;
+using blog.Domain.Common;
+using blog.Domain.Common.Helpers;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
 using blog.Domain.Users.Entities;
@@ -20,13 +23,16 @@ namespace blog.Domain.Posts.Entities
         public UserId AuthorId { get; private set; }
         public User Author { get; private set; }
 
+        public CategoryId CategoryId { get; private set; }
+        public Category Category { get; private set; } = null!;
+
         public int ViewCount { get; private set; }
 
         public NpgsqlTsVector SearchVector { get; private set; } = null!;
 
         private Post() : base(PostId.Empty) { }
 
-        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author) : base(PostId.New())
+        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author, CategoryId categoryId) : base(PostId.New())
         {
             Title = title;
             TitleImageUrl = titleImageUrl;
@@ -34,6 +40,7 @@ namespace blog.Domain.Posts.Entities
             Tags = tags;
             AuthorId = author.Id;
             Author = author;
+            CategoryId = categoryId;
             Slug = GenerateSlug(title);
 
             Status = author.Level >= UserLevel.Admin
@@ -53,12 +60,13 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
-        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval)
+        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, CategoryId categoryId)
         {
             Title = title;
             TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
+            CategoryId = categoryId;
             Slug = GenerateSlug(title);
 
             if (requiresReapproval && Status == PostStatus.Published)
@@ -68,12 +76,7 @@ namespace blog.Domain.Posts.Entities
         }
 
         public static string GenerateSlug(string title)
-        {
-            return title
-                .ToLowerInvariant()
-                .Replace(" ", "-")
-                .Replace("_", "-");
-        }
+            => SlugGenerator.Generate(title);
 
         public void IncrementView()
         {

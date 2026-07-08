@@ -7,7 +7,7 @@ using blog.Domain.Users.Types;
 
 namespace blog.Domain.Users.Entities
 {
-    public class User : Entity<UserId>
+    public class User : SoftDeletableEntity<UserId>
     {
         public string Email { get; private set; }
         public string FirstName { get; private set; }
@@ -17,9 +17,6 @@ namespace blog.Domain.Users.Entities
 
         public bool IsBanned { get; private set; }
         public DateTime? BannedAt { get; private set; }
-
-        public bool IsDeleted { get; private set; }
-        public DateTime? DeletedAt { get; private set; }
 
         public int FailedLoginAttempts { get; private set; }
         public DateTime? LockedOutUntil { get; private set; }
@@ -63,13 +60,6 @@ namespace blog.Domain.Users.Entities
         {
             IsBanned = false;
             BannedAt = null;
-            MarkAsUpdated();
-        }
-
-        public void SoftDelete()
-        {
-            IsDeleted = true;
-            DeletedAt = DateTime.UtcNow;
             MarkAsUpdated();
         }
 

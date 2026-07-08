@@ -1,4 +1,5 @@
-﻿using blog.Domain.Posts.Entities;
+﻿using blog.Domain.Categories.Types;
+using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Types;
 using blog.Domain.Users.Types;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,18 @@ namespace blog.Infrastructure.Persistence.Configurations
                     v => new UserId(v))
                 .HasColumnType("uuid")
                 .IsRequired();
+
+            builder.Property(x => x.CategoryId)
+                .HasConversion(
+                    v => v.Value,
+                    v => new CategoryId(v))
+                .HasColumnType("uuid")
+                .IsRequired();
+
+            builder.HasOne(x => x.Category)
+                .WithMany()
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(x => x.CreatedAt)
                 .IsRequired();

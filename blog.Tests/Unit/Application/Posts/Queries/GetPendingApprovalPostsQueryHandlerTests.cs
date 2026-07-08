@@ -1,4 +1,5 @@
 ﻿using blog.Application.Posts.Queries.GetPendingApprovalPosts;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -61,7 +62,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var query = ValidQuery;
             var pendingAuthor = CreateUser("author@test.com", UserLevel.Author);
-            var posts = new List<Post> { new("Pending Post", null, "Content", ["dotnet"], pendingAuthor) };
+            var posts = new List<Post> { new("Pending Post", null, "Content", ["dotnet"], pendingAuthor, CategoryId.New()) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

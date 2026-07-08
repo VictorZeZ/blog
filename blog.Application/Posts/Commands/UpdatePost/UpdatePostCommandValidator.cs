@@ -13,6 +13,9 @@ namespace blog.Application.Posts.Commands.UpdatePost
             RuleFor(x => x.PostId)
                 .NotEmpty();
 
+            RuleFor(x => x.CategoryId)
+                .NotEmpty();
+
             RuleFor(x => x.Title)
                 .NotEmpty()
                 .MaximumLength(256);

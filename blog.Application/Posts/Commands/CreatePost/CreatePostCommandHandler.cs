@@ -1,4 +1,6 @@
-﻿using blog.Domain.Common.Enum;
+﻿using blog.Domain.Categories.Repository;
+using blog.Domain.Categories.Types;
+using blog.Domain.Common.Enum;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Common;
@@ -11,7 +13,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.CreatePost
 {
-    public class CreatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<CreatePostCommand, CreatePostResponse>
+    public class CreatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<CreatePostCommand, CreatePostResponse>
     {
         public async Task<CreatePostResponse> Handle(CreatePostCommand request, CancellationToken cancellationToken)
         {
@@ -23,6 +25,11 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             if (!author.IsAuthorOrHigher())
                 throw new ForbiddenException("create_post");
+
+            var categoryId = new CategoryId(request.CategoryId);
+            var category = await categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category is null)
+                throw new NotFoundException("Category", request.CategoryId);
 
             var newSlug = Post.GenerateSlug(request.Title);
             var slugTaken = await postRepository.ExistsBySlugAsync(newSlug, cancellationToken);
@@ -43,7 +50,8 @@ namespace blog.Application.Posts.Commands.CreatePost
                 titleImageUrl,
                 request.Content,
                 request.Tags,
-                author);
+                author,
+                categoryId);
 
             await postRepository.AddAsync(post, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -6,6 +6,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
     {
         public Guid ActorId { get; init; }
         public Guid PostId { get; init; }
+        public Guid CategoryId { get; init; }
         public string Title { get; init; } = string.Empty;
         public string Content { get; init; } = string.Empty;
         public List<string> Tags { get; init; } = [];
