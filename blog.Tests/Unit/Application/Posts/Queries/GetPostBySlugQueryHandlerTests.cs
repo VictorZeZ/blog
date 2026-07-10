@@ -1,5 +1,5 @@
 ﻿using blog.Application.Posts.Queries.GetPostBySlug;
-using blog.Domain.Categories.Types;
+using blog.Domain.Categories.Entities;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
@@ -41,12 +41,12 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         private static Post CreatePublishedPost(User author)
         {
             // Admin/Owner authored posts are auto-published per Post constructor rules
-            var post = new Post("My First Post", null, "Some content", ["dotnet"], author, CategoryId.New());
+            var post = new Post("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
             return post;
         }
 
         private static Post CreatePendingPost(User author)
-            => new("My First Post", null, "Some content", ["dotnet"], author, CategoryId.New());
+            => new("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
 
         private void SetupPost(Post post)
         {
@@ -76,6 +76,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             result.Status.Should().Be(PostStatus.Published);
             result.AuthorId.Should().Be(author.Id.Value);
             result.AuthorFullName.Should().Be(author.FullName);
+            result.CategoryName.Should().Be(post.Category.Name);
         }
 
         [Fact]

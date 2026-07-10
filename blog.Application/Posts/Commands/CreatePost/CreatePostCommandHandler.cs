@@ -51,7 +51,7 @@ namespace blog.Application.Posts.Commands.CreatePost
                 request.Content,
                 request.Tags,
                 author,
-                categoryId);
+                category);
 
             await postRepository.AddAsync(post, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);

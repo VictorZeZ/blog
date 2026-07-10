@@ -16,6 +16,7 @@ namespace blog.Domain.Posts.Repository
         Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, CancellationToken ct = default);
         Task<PagedResult<Post>> GetPendingApprovalAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
         Task<PagedResult<Post>> GetByTagAsync(PagedRequest paging, string tag, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
+        Task<PagedResult<Post>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
         Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default);
         Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
 

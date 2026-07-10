@@ -1,5 +1,5 @@
 ﻿using blog.Application.Posts.Queries.SearchPosts;
-using blog.Domain.Categories.Types;
+using blog.Domain.Categories.Entities;
 using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -63,7 +63,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var query = ValidQuery;
             var author = CreateAuthor(UserLevel.Admin);
-            var posts = new List<Post> { new("EF Core Migrations Guide", null, "Content", ["dotnet"], author, CategoryId.New()) };
+            var posts = new List<Post> { new("EF Core Migrations Guide", null, "Content", ["dotnet"], author, new Category("Technology")) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock
@@ -76,6 +76,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Assert
             result.TotalCount.Should().Be(1);
             result.Items.First().Title.Should().Be("EF Core Migrations Guide");
+            result.Items.First().CategoryName.Should().Be(posts[0].Category.Name);
         }
 
         [Fact]

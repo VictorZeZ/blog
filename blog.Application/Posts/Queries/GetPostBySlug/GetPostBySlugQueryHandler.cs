@@ -45,6 +45,7 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
                 ViewCount = post.ViewCount,
                 AuthorId = post.AuthorId.Value,
                 AuthorFullName = post.Author.FullName,
+                CategoryName = post.Category.Name,
                 CreatedAt = post.CreatedAt,
                 UpdatedAt = post.UpdatedAt
             };

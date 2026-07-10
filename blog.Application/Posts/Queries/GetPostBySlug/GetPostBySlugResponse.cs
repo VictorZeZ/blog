@@ -14,6 +14,7 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
         public int ViewCount { get; init; }
         public Guid AuthorId { get; init; }
         public string AuthorFullName { get; init; } = string.Empty;
+        public string CategoryName { get; init; } = string.Empty;
         public DateTime CreatedAt { get; init; }
         public DateTime? UpdatedAt { get; init; }
     }

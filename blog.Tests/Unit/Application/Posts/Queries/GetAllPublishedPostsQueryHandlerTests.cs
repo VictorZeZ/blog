@@ -1,5 +1,5 @@
 ﻿using blog.Application.Posts.Queries.GetAllPublishedPosts;
-using blog.Domain.Categories.Types;
+using blog.Domain.Categories.Entities;
 using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -65,8 +65,8 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             var author = CreateAuthor(UserLevel.Admin);
             var posts = new List<Post>
             {
-                new("First Post", null, "Content", ["dotnet"], author,CategoryId.New()),
-                new("Second Post", null, "Content", ["csharp"], author,CategoryId.New())
+                new("First Post", null, "Content", ["dotnet"], author,new Category("Technology")),
+                new("Second Post", null, "Content", ["csharp"], author,new Category("Technology"))
             };
             var pagedResult = new PagedResult<Post>(posts, 2, 1, 10);
 

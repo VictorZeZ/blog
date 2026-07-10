@@ -15,16 +15,21 @@ namespace blog.Infrastructure.Repositories
         public async Task<Post?> GetByIdAsync(PostId id, CancellationToken ct = default)
             => await context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Post?> GetBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .FirstOrDefaultAsync(x => x.Slug == slug, ct);
 
         public async Task<PagedResult<Post>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, CancellationToken ct = default)
         {
-            var query = context.Posts.Include(x => x.Author).AsQueryable();
+            var query = context.Posts
+                .Include(x => x.Author)
+                .Include(x => x.Category)
+                .AsQueryable();
 
             query = filter switch
             {
@@ -44,6 +49,7 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .Where(x => x.Status == PostStatus.Published)
                 .ApplySorting(sortBy);
 
@@ -54,6 +60,7 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .Where(x => x.AuthorId == authorId);
 
             if (publishedOnly)
@@ -68,6 +75,7 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .Where(x => x.Status == PostStatus.PendingApproval)
                 .ApplySorting(sortBy);
 
@@ -78,7 +86,19 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .Where(x => x.Status == PostStatus.Published && x.Tags.Contains(tag))
+                .ApplySorting(sortBy);
+
+            return await query.ToPagedResultAsync(paging, ct);
+        }
+
+        public async Task<PagedResult<Post>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        {
+            var query = context.Posts
+                .Include(x => x.Author)
+                .Include(x => x.Category)
+                .Where(x => x.Status == PostStatus.Published && x.Category.Slug == categorySlug)
                 .ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);
@@ -88,6 +108,7 @@ namespace blog.Infrastructure.Repositories
         {
             var query = context.Posts
                 .Include(x => x.Author)
+                .Include(x => x.Category)
                 .Where(x => x.Status == PostStatus.Published &&
                             x.SearchVector.Matches(EF.Functions.PlainToTsQuery("english", term)))
                 .ApplySorting(sortBy);

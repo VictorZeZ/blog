@@ -51,7 +51,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         private static Post CreatePost(User author, string? titleImageUrl = null)
-            => new("Original Title", titleImageUrl, "Original content", ["dotnet"], author, CategoryId.New());
+            => new("Original Title", titleImageUrl, "Original content", ["dotnet"], author, new Category("Technology"));
 
         private static Category ValidCategory => new("Technology");
 

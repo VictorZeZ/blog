@@ -13,6 +13,7 @@ namespace blog.Domain.Posts.Common
         public int ViewCount { get; init; }
         public Guid AuthorId { get; init; }
         public string AuthorFullName { get; init; } = string.Empty;
+        public string CategoryName { get; init; } = string.Empty;
         public DateTime CreatedAt { get; init; }
     }
 }

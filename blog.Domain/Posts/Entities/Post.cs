@@ -24,7 +24,7 @@ namespace blog.Domain.Posts.Entities
         public User Author { get; private set; }
 
         public CategoryId CategoryId { get; private set; }
-        public Category Category { get; private set; } = null!;
+        public Category Category { get; private set; }
 
         public int ViewCount { get; private set; }
 
@@ -32,7 +32,7 @@ namespace blog.Domain.Posts.Entities
 
         private Post() : base(PostId.Empty) { }
 
-        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author, CategoryId categoryId) : base(PostId.New())
+        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author, Category category) : base(PostId.New())
         {
             Title = title;
             TitleImageUrl = titleImageUrl;
@@ -40,7 +40,8 @@ namespace blog.Domain.Posts.Entities
             Tags = tags;
             AuthorId = author.Id;
             Author = author;
-            CategoryId = categoryId;
+            CategoryId = category.Id;
+            Category = category;
             Slug = GenerateSlug(title);
 
             Status = author.Level >= UserLevel.Admin
@@ -60,13 +61,14 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
-        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, CategoryId categoryId)
+        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, Category category)
         {
             Title = title;
             TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
-            CategoryId = categoryId;
+            CategoryId = category.Id;
+            Category = category;
             Slug = GenerateSlug(title);
 
             if (requiresReapproval && Status == PostStatus.Published)

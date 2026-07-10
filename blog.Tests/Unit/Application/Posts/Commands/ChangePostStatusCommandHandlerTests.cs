@@ -1,5 +1,5 @@
 ﻿using blog.Application.Posts.Commands.ChangePostStatus;
-using blog.Domain.Categories.Types;
+using blog.Domain.Categories.Entities;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
@@ -38,7 +38,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         private static Post CreatePost(UserLevel authorLevel)
         {
             var author = CreateActor(authorLevel);
-            return new Post("My First Post", null, "Some content", ["dotnet"], author, CategoryId.New());
+            return new Post("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
         }
 
         [Fact]

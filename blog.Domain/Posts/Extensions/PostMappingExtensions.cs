@@ -16,6 +16,7 @@ namespace blog.Domain.Posts.Extensions
             ViewCount = post.ViewCount,
             AuthorId = post.AuthorId.Value,
             AuthorFullName = post.Author.FullName,
+            CategoryName = post.Category.Name,
             CreatedAt = post.CreatedAt
         };
     }
