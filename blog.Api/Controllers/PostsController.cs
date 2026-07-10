@@ -6,6 +6,7 @@ using blog.Application.Posts.Commands.UpdatePost;
 using blog.Application.Posts.Queries.GetAllPublishedPosts;
 using blog.Application.Posts.Queries.GetPostBySlug;
 using blog.Application.Posts.Queries.GetPostsByAuthor;
+using blog.Application.Posts.Queries.GetPostsByCategory;
 using blog.Application.Posts.Queries.GetPostsByTag;
 using blog.Application.Posts.Queries.SearchPosts;
 using blog.Domain.Common;
@@ -101,6 +102,15 @@ namespace blog.Api.Controllers
         public async Task<IActionResult> GetPostsByTag(string tag, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
         {
             var query = new GetPostsByTagQuery { Tag = tag, Paging = paging, SortBy = sortBy };
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("category/{categorySlug}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPostsByCategory(string categorySlug, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        {
+            var query = new GetPostsByCategoryQuery { CategorySlug = categorySlug, Paging = paging, SortBy = sortBy };
             var result = await Mediator.Send(query, ct);
             return Ok(result);
         }
