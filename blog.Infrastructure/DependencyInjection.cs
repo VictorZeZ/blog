@@ -42,10 +42,19 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<EmailSettings>()
+            .BindConfiguration(nameof(EmailSettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<ITokenHasher, TokenHasher>();
+        services.AddScoped<IHasher, Hasher>();
         services.AddScoped<IFileStorageService, CloudinaryService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+        services.AddScoped<IVerificationCodeGenerator, VerificationCodeGenerator>();
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

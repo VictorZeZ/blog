@@ -10,7 +10,7 @@ using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.Login
 {
-    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, ITokenHasher tokenHasher, IJwtService jwtService, IOptions<AccountLockoutSettings> lockoutSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
+    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IOptions<AccountLockoutSettings> lockoutSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
     {
         public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {

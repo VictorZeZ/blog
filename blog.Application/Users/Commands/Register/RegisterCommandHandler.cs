@@ -8,7 +8,7 @@ using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.Register
 {
-    public class RegisterCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, ITokenHasher tokenHasher, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, RegisterResponse>
+    public class RegisterCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, RegisterResponse>
     {
         public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {

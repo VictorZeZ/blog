@@ -17,7 +17,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
         private readonly Mock<IUserRepository> _userRepositoryMock = new();
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
         private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
-        private readonly Mock<ITokenHasher> _tokenHasherMock = new();
+        private readonly Mock<IHasher> _tokenHasherMock = new();
         private readonly Mock<IJwtService> _jwtServiceMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly LoginCommandHandler _handler;

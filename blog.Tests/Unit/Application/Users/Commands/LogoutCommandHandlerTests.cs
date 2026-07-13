@@ -13,7 +13,7 @@ namespace blog.Tests.Unit.Application.Users.Commands
     public class LogoutCommandHandlerTests
     {
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = new();
-        private readonly Mock<ITokenHasher> _tokenHasherMock = new();
+        private readonly Mock<IHasher> _tokenHasherMock = new();
         private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly LogoutCommandHandler _handler;
 

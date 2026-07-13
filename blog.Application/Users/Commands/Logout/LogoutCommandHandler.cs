@@ -5,7 +5,7 @@ using MediatR;
 
 namespace blog.Application.Users.Commands.Logout
 {
-    public class LogoutCommandHandler(IRefreshTokenRepository refreshTokenRepository, ITokenHasher tokenHasher, IUnitOfWork unitOfWork) : IRequestHandler<LogoutCommand, LogoutResponse>
+    public class LogoutCommandHandler(IRefreshTokenRepository refreshTokenRepository, IHasher tokenHasher, IUnitOfWork unitOfWork) : IRequestHandler<LogoutCommand, LogoutResponse>
     {
         public async Task<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
         {

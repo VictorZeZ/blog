@@ -4,7 +4,7 @@ using System.Text;
 
 namespace blog.Infrastructure.Services
 {
-    public class TokenHasher : ITokenHasher
+    public class Hasher : IHasher
     {
         public string Hash(string token)
         {

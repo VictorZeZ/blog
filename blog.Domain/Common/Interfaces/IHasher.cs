@@ -1,6 +1,6 @@
 ﻿namespace blog.Domain.Common.Interfaces
 {
-    public interface ITokenHasher
+    public interface IHasher
     {
         string Hash(string token);
     }
