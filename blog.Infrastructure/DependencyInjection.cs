@@ -49,6 +49,11 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<EmailVerificationSettings>()
+            .BindConfiguration(nameof(EmailVerificationSettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IHasher, Hasher>();
