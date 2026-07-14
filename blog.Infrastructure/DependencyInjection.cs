@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Categories.Repository;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Common.Settings;
+using blog.Domain.EmailVerifications.Repository;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Repository;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
 
         services.AddOptions<JwtSettings>()
             .BindConfiguration(nameof(JwtSettings))

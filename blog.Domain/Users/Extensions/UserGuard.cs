@@ -16,6 +16,18 @@ namespace blog.Domain.Users.Extensions
                 throw new InvalidStateException("User", "Banned", "Active");
         }
 
+        public static void EnsureNotLockedOut(this User user)
+        {
+            if (user.IsLockedOut())
+                throw new LockedException("User", user.LockedOutUntil!.Value);
+        }
+
+        public static void EnsureEmailConfirmed(this User user)
+        {
+            if (!user.IsEmailConfirmed)
+                throw new EmailNotConfirmedException(user.Email);
+        }
+
         public static bool IsOwner(this User user)
             => user.Level == UserLevel.Owner;
 

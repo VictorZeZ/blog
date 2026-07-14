@@ -21,6 +21,11 @@ namespace blog.Domain.Users.Entities
         public int FailedLoginAttempts { get; private set; }
         public DateTime? LockedOutUntil { get; private set; }
 
+        public bool IsEmailConfirmed { get; private set; }
+        public DateTime? EmailConfirmedAt { get; private set; }
+
+        public bool TwoFactorEnabled { get; private set; }
+
         public ICollection<Post> Posts { get; private set; } = [];
         public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 
@@ -86,6 +91,33 @@ namespace blog.Domain.Users.Entities
         {
             FailedLoginAttempts = 0;
             LockedOutUntil = null;
+            MarkAsUpdated();
+        }
+
+        public void ConfirmEmail()
+        {
+            IsEmailConfirmed = true;
+            EmailConfirmedAt = DateTime.UtcNow;
+            MarkAsUpdated();
+        }
+
+        public void ChangeEmail(string newEmail)
+        {
+            Email = EmailNormalizer.Normalize(newEmail);
+            IsEmailConfirmed = true;
+            EmailConfirmedAt = DateTime.UtcNow;
+            MarkAsUpdated();
+        }
+
+        public void EnableTwoFactor()
+        {
+            TwoFactorEnabled = true;
+            MarkAsUpdated();
+        }
+
+        public void DisableTwoFactor()
+        {
+            TwoFactorEnabled = false;
             MarkAsUpdated();
         }
 

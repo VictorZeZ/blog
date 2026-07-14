@@ -60,6 +60,16 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .HasDefaultValue(0)
                 .IsRequired();
 
+            builder.Property(x => x.IsEmailConfirmed)
+                .HasColumnType("boolean")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            builder.Property(x => x.TwoFactorEnabled)
+                .HasColumnType("boolean")
+                .HasDefaultValue(false)
+                .IsRequired();
+
             builder.HasMany(x => x.Posts)
                 .WithOne(x => x.Author)
                 .HasForeignKey(x => x.AuthorId)

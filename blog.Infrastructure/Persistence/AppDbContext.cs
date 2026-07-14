@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Categories.Entities;
+using blog.Domain.EmailVerifications.Entities;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Tokens.Entities;
 using blog.Domain.Users.Entities;
@@ -12,6 +13,8 @@ namespace blog.Infrastructure.Persistence
         public DbSet<Post> Posts => Set<Post>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
