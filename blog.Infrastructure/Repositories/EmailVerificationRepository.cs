@@ -15,7 +15,7 @@ namespace blog.Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.UserId == userId && x.Status == EmailVerificationStatus.Active, ct);
         public async Task<EmailVerification?> GetByIdAsync(EmailVerificationId verificationId, CancellationToken ct = default)
             => await context.EmailVerifications
-                .FirstOrDefaultAsync(x => x.Id == verificationId && x.Status == EmailVerificationStatus.Active, ct);
+                .FirstOrDefaultAsync(x => x.Id == verificationId, ct);
 
         public async Task AddAsync(EmailVerification emailVerification, CancellationToken ct = default)
             => await context.EmailVerifications.AddAsync(emailVerification, ct);
