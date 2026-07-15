@@ -1,6 +1,7 @@
 ﻿using blog.Domain.EmailVerifications.Entities;
 using blog.Domain.EmailVerifications.Enums;
 using blog.Domain.EmailVerifications.Repository;
+using blog.Domain.EmailVerifications.Types;
 using blog.Domain.Users.Types;
 using blog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,9 @@ namespace blog.Infrastructure.Repositories
         public async Task<EmailVerification?> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default)
             => await context.EmailVerifications
                 .FirstOrDefaultAsync(x => x.UserId == userId && x.Status == EmailVerificationStatus.Active, ct);
+        public async Task<EmailVerification?> GetByIdAsync(EmailVerificationId verificationId, CancellationToken ct = default)
+            => await context.EmailVerifications
+                .FirstOrDefaultAsync(x => x.Id == verificationId && x.Status == EmailVerificationStatus.Active, ct);
 
         public async Task AddAsync(EmailVerification emailVerification, CancellationToken ct = default)
             => await context.EmailVerifications.AddAsync(emailVerification, ct);
