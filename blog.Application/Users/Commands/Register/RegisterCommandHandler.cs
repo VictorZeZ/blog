@@ -1,14 +1,18 @@
 ﻿using blog.Domain.Common.Interfaces;
+using blog.Domain.Common.Settings;
+using blog.Domain.EmailVerifications.Entities;
+using blog.Domain.EmailVerifications.Enums;
+using blog.Domain.EmailVerifications.Extensions;
+using blog.Domain.EmailVerifications.Repository;
 using blog.Domain.Exceptions;
-using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Repository;
 using MediatR;
-using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
+using Microsoft.Extensions.Options;
 
 namespace blog.Application.Users.Commands.Register
 {
-    public class RegisterCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, RegisterResponse>
+    public class RegisterCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IPasswordHasher passwordHasher, IEmailService emailService, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, RegisterResponse>
     {
         public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
@@ -24,26 +28,21 @@ namespace blog.Application.Users.Commands.Register
                 request.LastName,
                 passwordHash);
 
-            var accessToken = jwtService.GenerateAccessToken(user);
-            var refreshToken = jwtService.GenerateRefreshToken();
-            var refreshTokenHash = tokenHasher.Hash(refreshToken);
-
-            var token = new RefreshTokenEntity(
-                refreshTokenHash,
-                user.Id,
-                request.DeviceInfo);
-
             await userRepository.AddAsync(user, cancellationToken);
-            await refreshTokenRepository.AddAsync(token, cancellationToken);
+
+            var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.Registration);
+            var codeHash = await emailService.SendVerificationCodeAsync(user.Email, expiryMinutes, cancellationToken);
+
+            var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.Registration, expiryMinutes);
+            await emailVerificationRepository.AddAsync(verification, cancellationToken);
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new RegisterResponse
             {
                 Id = user.Id.Value,
                 Email = user.Email,
-                FullName = user.FullName,
-                AccessToken = accessToken,
-                RefreshToken = refreshToken
+                ExpiryMinutes = expiryMinutes
             };
         }
     }

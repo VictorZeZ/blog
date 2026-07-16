@@ -11,6 +11,7 @@ namespace blog.Domain.EmailVerifications.Extensions
             EmailVerificationPurpose.Registration => settings.RegistrationExpiryMinutes,
             EmailVerificationPurpose.LoginVerification => settings.LoginVerificationExpiryMinutes,
             EmailVerificationPurpose.ChangeEmail => settings.ChangeEmailExpiryMinutes,
+            EmailVerificationPurpose.ResetPassword => settings.ResetPasswordExpiryMinutes,
             _ => throw new UnsupportedOperationException($"EmailVerificationPurpose.{purpose}")
         };
 
@@ -19,6 +20,7 @@ namespace blog.Domain.EmailVerifications.Extensions
             EmailVerificationPurpose.Registration => settings.RegistrationMaxAttempts,
             EmailVerificationPurpose.LoginVerification => settings.LoginVerificationMaxAttempts,
             EmailVerificationPurpose.ChangeEmail => settings.ChangeEmailMaxAttempts,
+            EmailVerificationPurpose.ResetPassword => settings.ResetPasswordMaxAttempts,
             _ => throw new UnsupportedOperationException($"EmailVerificationPurpose.{purpose}")
         };
     }

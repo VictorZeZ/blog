@@ -21,5 +21,11 @@ namespace blog.Domain.Common.Settings
 
         [Range(1, int.MaxValue)]
         public int ChangeEmailMaxAttempts { get; init; }
+
+        [Range(1, int.MaxValue)]
+        public int ResetPasswordExpiryMinutes { get; init; }
+
+        [Range(1, int.MaxValue)]
+        public int ResetPasswordMaxAttempts { get; init; }
     }
 }

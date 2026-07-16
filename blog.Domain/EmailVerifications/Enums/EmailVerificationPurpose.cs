@@ -4,6 +4,7 @@
     {
         Registration = 0,
         LoginVerification = 1,
-        ChangeEmail = 2
+        ChangeEmail = 2,
+        ResetPassword = 3
     }
 }
