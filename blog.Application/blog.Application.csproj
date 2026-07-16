@@ -17,4 +17,9 @@
     <ProjectReference Include="..\blog.Domain\blog.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="EmailVerifications\Commands\" />
+    <Folder Include="EmailVerifications\Queries\" />
+  </ItemGroup>
+
 </Project>
