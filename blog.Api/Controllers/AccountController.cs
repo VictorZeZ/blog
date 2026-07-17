@@ -2,6 +2,7 @@
 using blog.Api.DTOs.Users;
 using blog.Application.Users.Commands.ChangePassword;
 using blog.Application.Users.Commands.DeleteAccount;
+using blog.Application.Users.Commands.TwoFactor;
 using blog.Application.Users.Commands.UpdateUser;
 using blog.Application.Users.Queries.GetUserById;
 using MediatR;
@@ -44,6 +45,19 @@ namespace blog.Api.Controllers
                 UserId = CurrentUserId,
                 CurrentPassword = request.CurrentPassword,
                 NewPassword = request.NewPassword
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPut("me/two-factor")]
+        public async Task<IActionResult> TwoFactor([FromBody] TwoFactorRequest request, CancellationToken ct)
+        {
+            var command = new TwoFactorCommand
+            {
+                UserId = CurrentUserId,
+                TwoFactor = request.TwoFactor
             };
 
             var result = await Mediator.Send(command, ct);

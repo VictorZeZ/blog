@@ -1,5 +1,9 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Common.Settings;
+using blog.Domain.EmailVerifications.Entities;
+using blog.Domain.EmailVerifications.Enums;
+using blog.Domain.EmailVerifications.Extensions;
+using blog.Domain.EmailVerifications.Repository;
 using blog.Domain.Exceptions;
 using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Extensions;
@@ -10,7 +14,7 @@ using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.Login
 {
-    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IOptions<AccountLockoutSettings> lockoutSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
+    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IEmailVerificationRepository emailVerificationRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IEmailService emailService, IOptions<AccountLockoutSettings> lockoutSettings, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
     {
         public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
@@ -38,10 +42,32 @@ namespace blog.Application.Users.Commands.Login
                 throw new ValidationException("Credentials", "Invalid email or password");
             }
 
+            user.EnsureEmailConfirmed();
             user.EnsureActive();
 
             user.ResetFailedLoginAttempts();
             userRepository.Update(user);
+
+            if (user.TwoFactorEnabled)
+            {
+                var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
+                if (existingVerification is not null && existingVerification.Purpose == EmailVerificationPurpose.LoginVerification)
+                    throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
+
+                var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.LoginVerification);
+                var codeHash = await emailService.SendVerificationCodeAsync(user.Email, expiryMinutes, cancellationToken);
+
+                var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.LoginVerification, expiryMinutes);
+                await emailVerificationRepository.AddAsync(verification, cancellationToken);
+
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+
+                return new LoginResponse
+                {
+                    RequiresTwoFactor = true,
+                    ChallengeId = verification.Id.Value
+                };
+            }
 
             var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();
@@ -57,6 +83,7 @@ namespace blog.Application.Users.Commands.Login
 
             return new LoginResponse
             {
+                RequiresTwoFactor = false,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
             };

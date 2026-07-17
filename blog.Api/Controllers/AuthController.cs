@@ -1,6 +1,7 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Users;
 using blog.Application.Users.Commands.ConfirmEmail;
+using blog.Application.Users.Commands.ConfirmLogin;
 using blog.Application.Users.Commands.Login;
 using blog.Application.Users.Commands.Logout;
 using blog.Application.Users.Commands.RefreshToken;
@@ -78,6 +79,22 @@ namespace blog.Api.Controllers
             var command = new ConfirmEmailCommand
             {
                 Email = request.Email,
+                Code = request.Code,
+                DeviceInfo = Request.Headers.UserAgent.ToString()
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("confirm-login")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ConfirmLogin([FromBody] ConfirmLoginRequest request, CancellationToken ct)
+        {
+            var command = new ConfirmLoginCommand
+            {
+                ChallengeId = request.ChallengeId,
                 Code = request.Code,
                 DeviceInfo = Request.Headers.UserAgent.ToString()
             };
