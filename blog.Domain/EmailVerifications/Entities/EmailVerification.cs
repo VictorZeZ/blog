@@ -24,13 +24,15 @@ namespace blog.Domain.EmailVerifications.Entities
 
         public EmailVerification(UserId userId, string codeHash, EmailVerificationPurpose purpose, int expiryMinutes, string? targetEmail = null) : base(EmailVerificationId.New())
         {
-            if (purpose == EmailVerificationPurpose.ChangeEmail && string.IsNullOrWhiteSpace(targetEmail))
-                throw new ValidationException("TargetEmail", "TargetEmail is required for ChangeEmail purpose");
+            if (purpose is EmailVerificationPurpose.ChangeEmail or EmailVerificationPurpose.ConfirmNewEmail && string.IsNullOrWhiteSpace(targetEmail))
+                throw new ValidationException("TargetEmail", "TargetEmail is required for ChangeEmail and ConfirmNewEmail purposes");
 
             UserId = userId;
             CodeHash = codeHash;
             Purpose = purpose;
-            TargetEmail = purpose == EmailVerificationPurpose.ChangeEmail ? EmailNormalizer.Normalize(targetEmail!) : null;
+            TargetEmail = purpose is EmailVerificationPurpose.ChangeEmail or EmailVerificationPurpose.ConfirmNewEmail
+                ? EmailNormalizer.Normalize(targetEmail!)
+                : null;
             ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
             Status = EmailVerificationStatus.Active;
         }

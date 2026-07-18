@@ -33,6 +33,10 @@ namespace blog.Infrastructure.Services
             {
                 throw new UnavailableException("Email");
             }
+            //catch (Exception ex)
+            //{
+            //    throw new ArgumentException(nameof(ex));
+            //}
             finally
             {
                 await client.DisconnectAsync(true, ct);
