@@ -28,6 +28,11 @@ namespace blog.Infrastructure.Services
                 ),
 
                 EmailVerificationPurpose.ChangeEmail => (
+                    "Verify your identity",
+                    "Please enter the One-Time Password (OTP) below to verify your identity before changing your email address."
+                ),
+
+                EmailVerificationPurpose.ConfirmNewEmail => (
                     "Confirm your new email address",
                     "Please enter the One-Time Password (OTP) below to confirm your new email address."
                 ),
