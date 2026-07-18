@@ -41,7 +41,7 @@ namespace blog.Infrastructure.Services
 
                           <tr>
                             <td align="center" style="padding: 0 40px 20px 40px;">
-                              <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; text-align: center;">{{title}}S</h1>
+                              <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; text-align: center;">{{title}}</h1>
                             </td>
                           </tr>
 
