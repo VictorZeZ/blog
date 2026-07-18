@@ -2,6 +2,6 @@
 {
     public interface IEmailTemplateRenderer
     {
-        string RenderVerificationCode(string code, int expiryMinutes);
+        string RenderVerificationCode(string title, string description, string code, int expiryMinutes);
     }
 }

@@ -4,7 +4,7 @@ namespace blog.Infrastructure.Services
 {
     public class EmailTemplateRenderer : IEmailTemplateRenderer
     {
-        public string RenderVerificationCode(string code, int expiryMinutes)
+        public string RenderVerificationCode(string title, string description, string code, int expiryMinutes)
         {
             return $$"""
                 <!DOCTYPE html>
@@ -12,7 +12,7 @@ namespace blog.Infrastructure.Services
                 <head>
                   <meta charset="utf-8">
                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                  <title>Verify your identity</title>
+                  <title>{{title}}</title>
                 </head>
                 <body style="margin: 0; padding: 0; background-color: #eef2ff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">
                   <span style="display: none !important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0;">Your verification code is {{code}}</span>
@@ -41,13 +41,14 @@ namespace blog.Infrastructure.Services
 
                           <tr>
                             <td align="center" style="padding: 0 40px 20px 40px;">
-                              <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; text-align: center;">Verify your identity</h1>
+                              <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; text-align: center;">{{title}}S</h1>
                             </td>
                           </tr>
 
                           <tr>
                             <td style="padding: 0 40px 20px 40px; font-size: 15px; line-height: 24px; color: #475569; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;">
-                              <p style="margin: 0 0 16px 0; text-align: center;">Please enter the One-Time Password (OTP) below to complete your request. This code expires in {{expiryMinutes}} minutes.</p>
+                              <p style="text-align: center;">{{description}}</p>
+                              <p style="margin: 0 0 16px 0; text-align: center;">This code expires in {{expiryMinutes}} minutes.</p>
 
                               <div style="text-align: center; padding: 10px 0 20px 0;">
                                 <table border="0" cellpadding="0" cellspacing="0" align="center" style="background-color: #eef2ff; border-radius: 12px; border: 1px solid #c7d2fe; display: inline-block;">

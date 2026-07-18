@@ -31,7 +31,7 @@ namespace blog.Application.Users.Commands.Register
             await userRepository.AddAsync(user, cancellationToken);
 
             var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.Registration);
-            var codeHash = await emailService.SendVerificationCodeAsync(user.Email, expiryMinutes, cancellationToken);
+            var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.Registration, cancellationToken);
 
             var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.Registration, expiryMinutes);
             await emailVerificationRepository.AddAsync(verification, cancellationToken);

@@ -55,7 +55,7 @@ namespace blog.Application.Users.Commands.Login
                     throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
 
                 var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.LoginVerification);
-                var codeHash = await emailService.SendVerificationCodeAsync(user.Email, expiryMinutes, cancellationToken);
+                var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.LoginVerification, cancellationToken);
 
                 var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.LoginVerification, expiryMinutes);
                 await emailVerificationRepository.AddAsync(verification, cancellationToken);
