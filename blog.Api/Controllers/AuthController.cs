@@ -2,10 +2,12 @@
 using blog.Api.DTOs.Users;
 using blog.Application.Users.Commands.ConfirmEmail;
 using blog.Application.Users.Commands.ConfirmLogin;
+using blog.Application.Users.Commands.ForgotPassword;
 using blog.Application.Users.Commands.Login;
 using blog.Application.Users.Commands.Logout;
 using blog.Application.Users.Commands.RefreshToken;
 using blog.Application.Users.Commands.Register;
+using blog.Application.Users.Commands.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +99,36 @@ namespace blog.Api.Controllers
                 ChallengeId = request.ChallengeId,
                 Code = request.Code,
                 DeviceInfo = Request.Headers.UserAgent.ToString()
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+        {
+            var command = new ForgotPasswordCommand
+            {
+                Email = request.Email
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+        {
+            var command = new ResetPasswordCommand
+            {
+                Email = request.Email,
+                Code = request.Code,
+                NewPassword = request.NewPassword
             };
 
             var result = await Mediator.Send(command, ct);

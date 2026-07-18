@@ -30,7 +30,7 @@ namespace blog.Application.Users.Commands.ResetPassword
             if (verification.HasExceededAttempts(maxAttempts))
                 throw new LockedException("EmailVerification", verification.ExpiresAt);
 
-            var codeHash = hasher.Hash(request.Code);
+            var codeHash = hasher.Hash(request.Code.ToUpper());
             if (codeHash != verification.CodeHash)
             {
                 verification.RegisterFailedAttempt();
