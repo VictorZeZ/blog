@@ -70,6 +70,25 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            // Postgres-generated STORED column so it can be indexed for trigram search.
+            // Shadow property (no CLR field): accessed via EF.Property<string>(user, "FullNameSearch").
+            builder.Property<string>("FullNameSearch")
+                .HasComputedColumnSql("\"FirstName\" || ' ' || \"LastName\"", stored: true);
+
+            // The explicit name argument here (not a later .HasDatabaseName() call) is required:
+            // it tells EF Core this is a distinct index object on "FullNameSearch", separate from
+            // any other index on the same property set.
+            builder.HasIndex(["FullNameSearch"], "IX_Users_FullNameSearch_Trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+
+            // Same reasoning as above: passing the name directly to HasIndex (rather than chaining
+            // .HasDatabaseName() after) prevents EF Core from merging this into the unique index
+            // already declared on Email above, which would otherwise produce an invalid unique GIN index.
+            builder.HasIndex(x => x.Email, "IX_Users_Email_Trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+
             builder.HasMany(x => x.Posts)
                 .WithOne(x => x.Author)
                 .HasForeignKey(x => x.AuthorId)

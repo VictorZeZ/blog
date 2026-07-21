@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Users.Common;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Types;
@@ -12,6 +13,7 @@ namespace blog.Domain.Users.Repository
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
         Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default);
         Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
+        Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
 
         // Write
         Task AddAsync(User user, CancellationToken ct = default);
