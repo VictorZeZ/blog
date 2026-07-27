@@ -7,6 +7,9 @@ using blog.Application.Users.Commands.Login;
 using blog.Application.Users.Commands.Logout;
 using blog.Application.Users.Commands.RefreshToken;
 using blog.Application.Users.Commands.Register;
+using blog.Application.Users.Commands.ResendLoginVerificationCode;
+using blog.Application.Users.Commands.ResendRegistrationCode;
+using blog.Application.Users.Commands.ResendResetPasswordCode;
 using blog.Application.Users.Commands.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -131,6 +134,36 @@ namespace blog.Api.Controllers
                 NewPassword = request.NewPassword
             };
 
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("resend-registration-code")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ResendRegistrationCode([FromBody] ResendRegistrationCodeRequest request, CancellationToken ct)
+        {
+            var command = new ResendRegistrationCodeCommand { Email = request.Email };
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("resend-reset-password-code")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ResendResetPasswordCode([FromBody] ResendResetPasswordCodeRequest request, CancellationToken ct)
+        {
+            var command = new ResendResetPasswordCodeCommand { Email = request.Email };
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("resend-login-code")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
+        public async Task<IActionResult> ResendLoginVerificationCode([FromBody] ResendLoginVerificationCodeRequest request, CancellationToken ct)
+        {
+            var command = new ResendLoginVerificationCodeCommand { ChallengeId = request.ChallengeId };
             var result = await Mediator.Send(command, ct);
             return Ok(result);
         }

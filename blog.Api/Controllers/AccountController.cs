@@ -5,6 +5,7 @@ using blog.Application.Users.Commands.ChangePassword;
 using blog.Application.Users.Commands.ConfirmChangeEmail;
 using blog.Application.Users.Commands.ConfirmNewEmail;
 using blog.Application.Users.Commands.DeleteAccount;
+using blog.Application.Users.Commands.ResendChangeEmailCode;
 using blog.Application.Users.Commands.TwoFactor;
 using blog.Application.Users.Commands.UpdateUser;
 using blog.Application.Users.Queries.GetUserById;
@@ -115,6 +116,14 @@ namespace blog.Api.Controllers
                 CurrentPassword = request.CurrentPassword
             };
 
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("me/change-email/resend")]
+        public async Task<IActionResult> ResendChangeEmailCode(CancellationToken ct)
+        {
+            var command = new ResendChangeEmailCodeCommand { UserId = CurrentUserId };
             var result = await Mediator.Send(command, ct);
             return Ok(result);
         }
