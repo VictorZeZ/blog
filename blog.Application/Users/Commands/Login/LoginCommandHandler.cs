@@ -65,7 +65,8 @@ namespace blog.Application.Users.Commands.Login
                 return new LoginResponse
                 {
                     RequiresTwoFactor = true,
-                    ChallengeId = verification.Id.Value
+                    ChallengeId = verification.Id.Value,
+                    ExpiresAt = verification.ExpiresAt
                 };
             }
 
