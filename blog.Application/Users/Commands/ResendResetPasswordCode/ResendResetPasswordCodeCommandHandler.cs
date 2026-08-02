@@ -16,6 +16,7 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
         {
             var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
+            var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
             if (IsEligibleForReset(user))
             {
                 var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, cancellationToken);
@@ -25,7 +26,6 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
                     verification.Revoke();
                     emailVerificationRepository.Update(verification);
 
-                    var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
                     var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.ResetPassword, cancellationToken);
 
                     var newVerification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.ResetPassword, expiryMinutes);
@@ -38,7 +38,11 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
                 // do nothing — never differentiate the response, to avoid leaking account/state information.
             }
 
-            return new ResendResetPasswordCodeResponse { Success = true };
+            return new ResendResetPasswordCodeResponse
+            {
+                Success = true,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+            };
         }
 
         private static bool IsEligibleForReset(Domain.Users.Entities.User? user)

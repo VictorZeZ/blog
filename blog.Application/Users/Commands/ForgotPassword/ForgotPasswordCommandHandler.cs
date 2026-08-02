@@ -16,13 +16,13 @@ namespace blog.Application.Users.Commands.ForgotPassword
         {
             var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
+            var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
             if (IsEligibleForReset(user))
             {
                 var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, cancellationToken);
 
                 if (existingVerification is null || existingVerification.Purpose != EmailVerificationPurpose.ResetPassword)
                 {
-                    var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
                     var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.ResetPassword, cancellationToken);
 
                     var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.ResetPassword, expiryMinutes);
@@ -34,7 +34,11 @@ namespace blog.Application.Users.Commands.ForgotPassword
 
             // Always return the same generic response regardless of whether the email exists,
             // is confirmed, is active, or already has a pending reset code — prevents user enumeration.
-            return new ForgotPasswordResponse { Success = true };
+            return new ForgotPasswordResponse
+            {
+                Success = true,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+            };
         }
 
         private static bool IsEligibleForReset(Domain.Users.Entities.User? user)
