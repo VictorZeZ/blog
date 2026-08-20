@@ -6,6 +6,7 @@ namespace blog.Domain.Posts.Common
     {
         public Guid Id { get; init; }
         public string Title { get; init; } = string.Empty;
+        public string Summary { get; init; } = string.Empty;
         public string? TitleImageUrl { get; init; }
         public string Slug { get; init; } = string.Empty;
         public List<string> Tags { get; init; } = [];

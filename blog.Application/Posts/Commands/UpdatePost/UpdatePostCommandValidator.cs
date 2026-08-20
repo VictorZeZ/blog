@@ -20,6 +20,10 @@ namespace blog.Application.Posts.Commands.UpdatePost
                 .NotEmpty()
                 .MaximumLength(256);
 
+            RuleFor(x => x.Summary)
+                .NotEmpty()
+                .MaximumLength(256);
+
             RuleFor(x => x.Content)
                 .NotEmpty();
 

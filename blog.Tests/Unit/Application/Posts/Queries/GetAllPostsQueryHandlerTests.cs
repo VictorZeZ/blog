@@ -82,7 +82,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var query = QueryFor();
             var author = CreateUser("author@test.com", UserLevel.Author);
-            var posts = new List<Post> { new("Rejected Post", null, "Content", ["dotnet"], author, new Category("Technology")) };
+            var posts = new List<Post> { new("Rejected Post", "Summary for post", null, "Content", ["dotnet"], author, new Category("Technology")) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

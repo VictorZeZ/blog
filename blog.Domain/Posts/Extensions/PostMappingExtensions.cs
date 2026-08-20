@@ -9,6 +9,7 @@ namespace blog.Domain.Posts.Extensions
         {
             Id = post.Id.Value,
             Title = post.Title,
+            Summary = post.Summary,
             TitleImageUrl = post.TitleImageUrl,
             Slug = post.Slug,
             Tags = post.Tags,

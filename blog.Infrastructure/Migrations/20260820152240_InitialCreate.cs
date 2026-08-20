@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using NpgsqlTypes;
 
 #nullable disable
@@ -93,6 +91,7 @@ namespace blog.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Summary = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     TitleImageUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     Content = table.Column<string>(type: "text", maxLength: 256, nullable: false),
                     Slug = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),

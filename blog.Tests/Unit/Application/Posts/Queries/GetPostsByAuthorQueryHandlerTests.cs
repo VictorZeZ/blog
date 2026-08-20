@@ -172,7 +172,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var author = CreateUser("author@test.com", UserLevel.Admin);
             var query = QueryFor(author.Id.Value);
-            var posts = new List<Post> { new("My Post", null, "Content", ["dotnet"], author, new Category("Technology")) };
+            var posts = new List<Post> { new("My Post", "Summary for post", null, "Content", ["dotnet"], author, new Category("Technology")) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

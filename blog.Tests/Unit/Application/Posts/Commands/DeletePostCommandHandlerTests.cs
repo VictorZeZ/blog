@@ -41,7 +41,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         private static Post CreatePost(User author, string? titleImageUrl = null)
-            => new("My First Post", titleImageUrl, "Some content", ["dotnet"], author, new Category("Technology"));
+            => new("My First Post", "Summary for post", titleImageUrl, "Some content", ["dotnet"], author, new Category("Technology"));
 
         private static DeletePostCommand ValidCommand(Guid actorId, Guid postId) => new()
         {

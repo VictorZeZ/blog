@@ -64,7 +64,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             var query = ValidQuery;
             var author = CreateAuthor(UserLevel.Admin);
             var category = new Category("Technology");
-            var posts = new List<Post> { new("EF Core Migrations Guide", null, "Content", ["dotnet"], author, category) };
+            var posts = new List<Post> { new("EF Core Migrations Guide", "Summary for post", null, "Content", ["dotnet"], author, category) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

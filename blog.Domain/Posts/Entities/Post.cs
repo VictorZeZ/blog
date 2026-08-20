@@ -14,6 +14,7 @@ namespace blog.Domain.Posts.Entities
     public class Post : Entity<PostId>
     {
         public string Title { get; private set; }
+        public string Summary { get; private set; }
         public string? TitleImageUrl { get; private set; }
         public string Content { get; private set; }
         public string Slug { get; private set; }
@@ -32,9 +33,10 @@ namespace blog.Domain.Posts.Entities
 
         private Post() : base(PostId.Empty) { }
 
-        public Post(string title, string? titleImageUrl, string content, List<string> tags, User author, Category category) : base(PostId.New())
+        public Post(string title, string summary, string? titleImageUrl, string content, List<string> tags, User author, Category category) : base(PostId.New())
         {
             Title = title;
+            Summary = summary;
             TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;
@@ -61,9 +63,10 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
-        public void Update(string title, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, Category category)
+        public void Update(string title, string summary, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, Category category)
         {
             Title = title;
+            Summary = summary;
             TitleImageUrl = titleImageUrl;
             Content = content;
             Tags = tags;

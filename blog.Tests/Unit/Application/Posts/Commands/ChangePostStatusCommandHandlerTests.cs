@@ -38,7 +38,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         private static Post CreatePost(UserLevel authorLevel)
         {
             var author = CreateActor(authorLevel);
-            return new Post("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
+            return new Post("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
         }
 
         [Fact]

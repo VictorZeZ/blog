@@ -62,7 +62,7 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             // Arrange
             var query = ValidQuery;
             var pendingAuthor = CreateUser("author@test.com", UserLevel.Author);
-            var posts = new List<Post> { new("Pending Post", null, "Content", ["dotnet"], pendingAuthor, new Category("Technology")) };
+            var posts = new List<Post> { new("Pending Post", "Summary for post", null, "Content", ["dotnet"], pendingAuthor, new Category("Technology")) };
             var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
 
             _postRepositoryMock

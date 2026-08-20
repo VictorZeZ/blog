@@ -41,12 +41,12 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         private static Post CreatePublishedPost(User author)
         {
             // Admin/Owner authored posts are auto-published per Post constructor rules
-            var post = new Post("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
+            var post = new Post("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
             return post;
         }
 
         private static Post CreatePendingPost(User author)
-            => new("My First Post", null, "Some content", ["dotnet"], author, new Category("Technology"));
+            => new("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
 
         private void SetupPost(Post post)
         {

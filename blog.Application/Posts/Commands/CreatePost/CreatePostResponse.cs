@@ -6,6 +6,7 @@ namespace blog.Application.Posts.Commands.CreatePost
     {
         public Guid Id { get; init; }
         public string Title { get; init; } = string.Empty;
+        public string Summary { get; init; } = string.Empty;
         public string Slug { get; init; } = string.Empty;
         public PostStatus Status { get; init; }
     }

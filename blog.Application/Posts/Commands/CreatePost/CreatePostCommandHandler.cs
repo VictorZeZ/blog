@@ -47,6 +47,7 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             var post = new Post(
                 request.Title,
+                request.Summary,
                 titleImageUrl,
                 request.Content,
                 request.Tags,
@@ -59,6 +60,7 @@ namespace blog.Application.Posts.Commands.CreatePost
             return new CreatePostResponse
             {
                 Id = post.Id.Value,
+                Summary = post.Summary,
                 Title = post.Title,
                 Slug = post.Slug,
                 Status = post.Status

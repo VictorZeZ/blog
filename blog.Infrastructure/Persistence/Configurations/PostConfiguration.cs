@@ -24,6 +24,9 @@ namespace blog.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Title)
                 .IsRequired();
 
+            builder.Property(x => x.Summary)
+                .IsRequired();
+
             builder.Property(x => x.TitleImageUrl)
                 .HasMaxLength(512);
 

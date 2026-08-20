@@ -48,7 +48,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
 
             var requiresReapproval = !actor.IsElevated();
 
-            post.Update(request.Title, titleImageUrl, request.Content, request.Tags, requiresReapproval, category);
+            post.Update(request.Title, request.Summary, titleImageUrl, request.Content, request.Tags, requiresReapproval, category);
 
             postRepository.Update(post);
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -57,6 +57,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
             {
                 Id = post.Id.Value,
                 Title = post.Title,
+                Summary = post.Summary,
                 Slug = post.Slug,
                 TitleImageUrl = post.TitleImageUrl,
                 Status = post.Status

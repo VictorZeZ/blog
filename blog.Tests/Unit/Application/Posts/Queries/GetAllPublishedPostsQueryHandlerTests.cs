@@ -65,8 +65,8 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             var author = CreateAuthor(UserLevel.Admin);
             var posts = new List<Post>
             {
-                new("First Post", null, "Content", ["dotnet"], author,new Category("Technology")),
-                new("Second Post", null, "Content", ["csharp"], author,new Category("Technology"))
+                new("First Post","Summary for post", null, "Content", ["dotnet"], author,new Category("Technology")),
+                new("Second Post","Summary for post", null, "Content", ["csharp"], author,new Category("Technology"))
             };
             var pagedResult = new PagedResult<Post>(posts, 2, 1, 10);
 
