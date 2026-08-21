@@ -12,6 +12,13 @@ namespace blog.Infrastructure.Services
     {
         private readonly Cloudinary _cloudinary = new(new Account(settings.Value.CloudName, settings.Value.ApiKey, settings.Value.ApiSecret));
 
+        private static readonly HashSet<string> ConvertToWebpExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg",
+            ".jpeg",
+            ".png"
+        };
+
         public async Task<string> UploadAsync(Stream fileStream, string fileName, StorageFolder folder, CancellationToken ct = default)
         {
             var folderName = ResolveFolderName(folder);
@@ -24,13 +31,25 @@ namespace blog.Infrastructure.Services
                 PublicId = publicId,
                 UseFilename = false,
                 UniqueFilename = false,
-                Overwrite = false
+                Overwrite = false,
+                Format = ShouldConvertToWebp(fileName) ? "webp" : null
             };
 
             var result = await _cloudinary.UploadAsync(uploadParams, ct);
 
             if (result.Error is not null)
-                throw new UnavailableException("Cloudinary");
+            {
+                throw new Exception(
+                    $"Cloudinary Upload Failed\n" +
+                    $"StatusCode: {result.StatusCode}\n" +
+                    $"Error Code: {result.Error.GetType}\n" +
+                    $"Error Message: {result.Error.Message}\n" +
+                    $"Error: {result.Error}"
+                );
+            }
+
+            //if (result.Error is not null)
+            //    throw new UnavailableException("Cloudinary");
 
             return result.SecureUrl.ToString();
         }
@@ -44,6 +63,11 @@ namespace blog.Infrastructure.Services
             if (result.Error is not null)
                 throw new UnavailableException("Cloudinary");
         }
+
+        // Converts JPEG/JPG/PNG uploads to WebP at upload time (smaller size, same visual quality).
+        // GIF is left untouched to avoid breaking animation, and WebP is already the target format.
+        private static bool ShouldConvertToWebp(string fileName)
+            => ConvertToWebpExtensions.Contains(Path.GetExtension(fileName));
 
         private static string ResolveFolderName(StorageFolder folder) => folder switch
         {
