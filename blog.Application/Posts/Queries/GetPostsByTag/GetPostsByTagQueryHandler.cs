@@ -10,7 +10,7 @@ namespace blog.Application.Posts.Queries.GetPostsByTag
     {
         public async Task<PagedResult<PostSummaryResponse>> Handle(GetPostsByTagQuery request, CancellationToken cancellationToken)
         {
-            var result = await postRepository.GetByTagAsync(request.Paging, request.Tag, request.SortBy, cancellationToken);
+            var result = await postRepository.GetByTagAsync(request.Paging, request.Tags, request.SortBy, request.GroupingMode, cancellationToken);
 
             return new PagedResult<PostSummaryResponse>(
                 result.Items.Select(p => p.ToSummaryResponse()),

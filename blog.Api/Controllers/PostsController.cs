@@ -99,11 +99,18 @@ namespace blog.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("tag/{tag}")]
+        [HttpGet("tag")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetPostsByTag(string tag, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        public async Task<IActionResult> GetPostsByTag([FromQuery] List<string> tags, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, [FromQuery] PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
         {
-            var query = new GetPostsByTagQuery { Tag = tag, Paging = paging, SortBy = sortBy };
+            var query = new GetPostsByTagQuery
+            {
+                Tags = tags,
+                Paging = paging,
+                SortBy = sortBy,
+                GroupingMode = groupingMode
+            };
+
             var result = await Mediator.Send(query, ct);
             return Ok(result);
         }

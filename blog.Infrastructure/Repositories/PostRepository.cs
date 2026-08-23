@@ -82,15 +82,38 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        public async Task<PagedResult<Post>> GetByTagAsync(PagedRequest paging, string tag, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        public async Task<PagedResult<Post>> GetByTagAsync(PagedRequest paging, List<string> tags, PostSortBy sortBy = PostSortBy.Newest, PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
         {
             var query = context.Posts
                 .Include(x => x.Author)
                 .Include(x => x.Category)
-                .Where(x => x.Status == PostStatus.Published && x.Tags.Contains(tag))
+                .Where(x => x.Status == PostStatus.Published && tags.Any(t => x.Tags.Contains(t)))
                 .ApplySorting(sortBy);
 
-            return await query.ToPagedResultAsync(paging, ct);
+            if (groupingMode == PostTagGroupingMode.None)
+                return await query.ToPagedResultAsync(paging, ct);
+
+            // Grouping/interleaving needs, per post, the index of the first requested tag it matches.
+            // That rank isn't practical to compute in SQL for an arbitrary-length tag list, so the
+            // DB does the filtering + sorting (using the existing GIN index), and the relatively small,
+            // already-narrowed result set is grouped/interleaved here in memory.
+            var matchingPosts = await query.ToListAsync(ct);
+
+            var ranked = matchingPosts
+                .Select(post => (Post: post, TagIndex: GetFirstMatchingTagIndex(post.Tags, tags)))
+                .ToList();
+
+            var ordered = groupingMode == PostTagGroupingMode.Grouped
+                ? ranked.OrderBy(x => x.TagIndex).Select(x => x.Post).ToList()
+                : InterleaveByTag(ranked, tags.Count);
+
+            var totalCount = ordered.Count;
+            var items = ordered
+                .Skip((paging.Page - 1) * paging.PageSize)
+                .Take(paging.PageSize)
+                .ToList();
+
+            return new PagedResult<Post>(items, totalCount, paging.Page, paging.PageSize);
         }
 
         public async Task<PagedResult<Post>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
@@ -127,5 +150,47 @@ namespace blog.Infrastructure.Repositories
 
         public void Delete(Post post)
             => context.Posts.Remove(post);
+
+        // Returns the index (in the caller-supplied tag list) of the first tag a post matches,
+        // so a post matching multiple requested tags is grouped/interleaved under only one of them
+        // — the earliest one in the input order — and never appears twice in the result.
+        private static int GetFirstMatchingTagIndex(List<string> postTags, List<string> requestedTags)
+        {
+            for (var i = 0; i < requestedTags.Count; i++)
+            {
+                if (postTags.Contains(requestedTags[i]))
+                    return i;
+            }
+
+            // Unreachable given the DB-level filter already guarantees at least one match,
+            // but kept as a safe fallback rather than throwing.
+            return requestedTags.Count;
+        }
+
+        // Round-robins posts across tag groups (one post from tag[0], then tag[1], ..., then back
+        // to tag[0]), preserving each group's existing SortBy order and skipping exhausted groups.
+        private static List<Post> InterleaveByTag(List<(Post Post, int TagIndex)> ranked, int tagCount)
+        {
+            var groups = Enumerable.Range(0, tagCount)
+                .Select(i => new Queue<Post>(ranked.Where(x => x.TagIndex == i).Select(x => x.Post)))
+                .ToList();
+
+            var result = new List<Post>(ranked.Count);
+            var remaining = ranked.Count;
+
+            while (remaining > 0)
+            {
+                foreach (var group in groups)
+                {
+                    if (group.Count == 0)
+                        continue;
+
+                    result.Add(group.Dequeue());
+                    remaining--;
+                }
+            }
+
+            return result;
+        }
     }
 }
