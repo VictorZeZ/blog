@@ -99,7 +99,7 @@ namespace blog.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("tag")]
+        [HttpGet("related")]
         [AllowAnonymous]
         public async Task<IActionResult> GetPostsByTag([FromQuery] List<string> tags, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, [FromQuery] PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
         {
