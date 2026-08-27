@@ -46,7 +46,7 @@ namespace blog.Domain.Posts.Entities
             Category = category;
             Slug = GenerateSlug(title);
 
-            Status = author.Level >= UserLevel.Admin
+            Status = author.Level >= UserLevel.Author
                 ? PostStatus.Published
                 : PostStatus.PendingApproval;
         }

@@ -27,6 +27,9 @@ namespace blog.Application.Users.Commands.ChangeUserLevel
             if (actor.Level == UserLevel.Admin && target.Level == UserLevel.Admin)
                 throw new ForbiddenException("change_admin_level");
 
+            if (actor.Level == UserLevel.Admin && request.Level > UserLevel.Author)
+                throw new ForbiddenException("promote_beyond_author");
+
             if (target.Level == request.Level)
                 throw new InvalidStateException("User", target.Level.ToString(), "Different level");
 

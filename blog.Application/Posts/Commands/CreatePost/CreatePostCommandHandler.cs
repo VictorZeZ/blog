@@ -23,9 +23,6 @@ namespace blog.Application.Posts.Commands.CreatePost
 
             author.EnsureActive();
 
-            if (!author.IsAuthorOrHigher())
-                throw new ForbiddenException("create_post");
-
             var categoryId = new CategoryId(request.CategoryId);
             var category = await categoryRepository.GetByIdAsync(categoryId, cancellationToken);
             if (category is null)

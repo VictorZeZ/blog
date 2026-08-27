@@ -46,7 +46,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
 
             var titleImageUrl = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
 
-            var requiresReapproval = !actor.IsElevated();
+            var requiresReapproval = !actor.IsAuthorOrHigher();
 
             post.Update(request.Title, request.Summary, titleImageUrl, request.Content, request.Tags, requiresReapproval, category);
 
