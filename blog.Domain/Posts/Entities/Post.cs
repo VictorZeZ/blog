@@ -2,6 +2,7 @@
 using blog.Domain.Categories.Types;
 using blog.Domain.Common;
 using blog.Domain.Common.Helpers;
+using blog.Domain.Exceptions;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
 using blog.Domain.Users.Entities;
@@ -49,6 +50,28 @@ namespace blog.Domain.Posts.Entities
             Status = author.Level >= UserLevel.Author
                 ? PostStatus.Published
                 : PostStatus.PendingApproval;
+        }
+
+        public static Post CreateDraft(string title, string summary, string? titleImageUrl, string content, List<string> tags, User author, Category category)
+        {
+            var post = new Post(title, summary, titleImageUrl, content, tags, author, category)
+            {
+                Status = PostStatus.Draft
+            };
+
+            return post;
+        }
+
+        public void PublishFromDraft()
+        {
+            if (Status != PostStatus.Draft)
+                throw new InvalidStateException("Post", Status.ToString(), "Draft");
+
+            Status = Author.Level >= UserLevel.Author
+                ? PostStatus.Published
+                : PostStatus.PendingApproval;
+
+            MarkAsUpdated();
         }
 
         public void Approve()

@@ -142,6 +142,9 @@ namespace blog.Infrastructure.Repositories
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts.AnyAsync(x => x.Slug == slug, ct);
 
+        public async Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default)
+            => await context.Posts.CountAsync(x => x.AuthorId == authorId && x.Status == PostStatus.Draft, ct);
+
         public async Task AddAsync(Post post, CancellationToken ct = default)
             => await context.Posts.AddAsync(post, ct);
 

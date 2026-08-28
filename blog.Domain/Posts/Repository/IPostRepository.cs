@@ -18,6 +18,7 @@ namespace blog.Domain.Posts.Repository
         Task<PagedResult<Post>> GetByTagAsync(PagedRequest paging, List<string> tags, PostSortBy sortBy = PostSortBy.Newest, PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default);
         Task<PagedResult<Post>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
         Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default);
+        Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default);
         Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
 
         // Write
