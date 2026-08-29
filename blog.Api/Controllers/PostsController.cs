@@ -1,7 +1,10 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Posts;
+using blog.Application.Posts.Commands.CreateDraft;
 using blog.Application.Posts.Commands.CreatePost;
 using blog.Application.Posts.Commands.DeletePost;
+using blog.Application.Posts.Commands.PublishDraft;
+using blog.Application.Posts.Commands.UpdateDraft;
 using blog.Application.Posts.Commands.UpdatePost;
 using blog.Application.Posts.Queries.GetAllPublishedPosts;
 using blog.Application.Posts.Queries.GetPostBySlug;
@@ -72,6 +75,68 @@ namespace blog.Api.Controllers
         public async Task<IActionResult> DeletePost(Guid postId, CancellationToken ct)
         {
             var command = new DeletePostCommand
+            {
+                ActorId = CurrentUserId,
+                PostId = postId
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("drafts")]
+        [Authorize]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateDraft([FromForm] CreateDraftRequest request, CancellationToken ct)
+        {
+            var command = new CreateDraftCommand
+            {
+                AuthorId = CurrentUserId,
+                CategoryId = request.CategoryId,
+                Title = request.Title,
+                Summary = request.Summary,
+                Content = request.Content,
+                Tags = request.Tags,
+                TitleImageStream = request.TitleImage?.OpenReadStream(),
+                TitleImageFileName = request.TitleImage?.FileName,
+                TitleImageContentType = request.TitleImage?.ContentType,
+                TitleImageSizeBytes = request.TitleImage?.Length ?? 0
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return CreatedAtAction(nameof(GetPostBySlug), new { slug = result.Slug }, result);
+        }
+
+        [HttpPut("drafts/{postId:guid}")]
+        [Authorize]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateDraft(Guid postId, [FromForm] UpdateDraftRequest request, CancellationToken ct)
+        {
+            var command = new UpdateDraftCommand
+            {
+                ActorId = CurrentUserId,
+                PostId = postId,
+                CategoryId = request.CategoryId,
+                Title = request.Title,
+                Summary = request.Summary,
+                Content = request.Content,
+                Tags = request.Tags,
+                TitleImageStream = request.TitleImage?.OpenReadStream(),
+                TitleImageFileName = request.TitleImage?.FileName,
+                RemoveTitleImage = request.RemoveTitleImage,
+                TitleImageContentType = request.TitleImage?.ContentType,
+                TitleImageSizeBytes = request.TitleImage?.Length ?? 0
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("drafts/{postId:guid}/publish")]
+        [Authorize]
+        public async Task<IActionResult> PublishDraft(Guid postId, CancellationToken ct)
+        {
+            var command = new PublishDraftCommand
             {
                 ActorId = CurrentUserId,
                 PostId = postId
