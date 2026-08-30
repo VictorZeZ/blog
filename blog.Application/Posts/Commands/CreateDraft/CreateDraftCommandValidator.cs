@@ -19,7 +19,7 @@ namespace blog.Application.Posts.Commands.CreateDraft
 
             RuleFor(x => x.Summary)
                 .NotEmpty()
-                .MaximumLength(300);
+                .MaximumLength(256);
 
             RuleFor(x => x.Content)
                 .NotEmpty();
