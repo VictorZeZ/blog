@@ -31,27 +31,56 @@ namespace blog.Tests.Unit.Application.Posts.Queries
 
         private static User CreateUser(string email, UserLevel level)
         {
-            var user = new User(email, "Ali", "Rezaei", "hashed_password");
+            var user = new User(
+                email,
+                "Ali",
+                "Rezaei",
+                "hashed_password");
+
             if (level != UserLevel.Normal)
                 user.Promote(level);
 
             return user;
         }
 
-        private static Post CreatePublishedPost(User author)
+        private static Post CreatePublishedPost()
         {
-            // Admin/Owner authored posts are auto-published per Post constructor rules
-            var post = new Post("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
-            return post;
+            var author = CreateUser(
+                "author@test.com",
+                UserLevel.Author);
+
+            return new Post(
+                "My First Post",
+                "Summary for post",
+                null,
+                "Some content",
+                ["dotnet"],
+                author,
+                new Category("Technology"));
         }
 
-        private static Post CreatePendingPost(User author)
-            => new("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
+        private static Post CreatePendingPost()
+        {
+            var author = CreateUser(
+                "author@test.com",
+                UserLevel.Normal);
+
+            return new Post(
+                "My First Post",
+                "Summary for post",
+                null,
+                "Some content",
+                ["dotnet"],
+                author,
+                new Category("Technology"));
+        }
 
         private void SetupPost(Post post)
         {
             _postRepositoryMock
-                .Setup(x => x.GetBySlugAsync(post.Slug, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetBySlugAsync(
+                    post.Slug,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
         }
 
@@ -59,14 +88,18 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_PublishedPost_ReturnsResponse()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Admin);
-            var post = CreatePublishedPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug };
+            var post = CreatePublishedPost();
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug
+            };
 
             SetupPost(post);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -74,23 +107,31 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             result.Title.Should().Be(post.Title);
             result.Slug.Should().Be(post.Slug);
             result.Status.Should().Be(PostStatus.Published);
-            result.AuthorId.Should().Be(author.Id.Value);
-            result.AuthorFullName.Should().Be(author.FullName);
+            result.AuthorId.Should().Be(post.AuthorId.Value);
+            result.AuthorFullName.Should().Be(post.Author.FullName);
             result.CategoryName.Should().Be(post.Category.Name);
+            result.Tags.Should().BeEquivalentTo(post.Tags);
         }
 
         [Fact]
         public async Task Handle_PostNotFound_ThrowsNotFoundException()
         {
             // Arrange
-            var query = new GetPostBySlugQuery { Slug = "non-existent-slug" };
+            var query = new GetPostBySlugQuery
+            {
+                Slug = "non-existent-slug"
+            };
 
             _postRepositoryMock
-                .Setup(x => x.GetBySlugAsync(query.Slug, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetBySlugAsync(
+                    query.Slug,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Post?)null);
 
             // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
+            var act = () => _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -100,14 +141,18 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_PublishedPost_IncrementsViewCountAndSavesChanges()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Admin);
-            var post = CreatePublishedPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug };
+            var post = CreatePublishedPost();
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug
+            };
 
             SetupPost(post);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.ViewCount.Should().Be(1);
@@ -117,7 +162,8 @@ namespace blog.Tests.Unit.Application.Posts.Queries
                 Times.Once);
 
             _unitOfWorkMock.Verify(
-                x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+                x => x.SaveChangesAsync(
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -125,14 +171,20 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_UnpublishedPostWithNoActor_ThrowsNotFoundException()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = null };
+            var post = CreatePendingPost();
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = null
+            };
 
             SetupPost(post);
 
             // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
+            var act = () => _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -142,18 +194,27 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_UnpublishedPostWithActorNotFound_ThrowsNotFoundException()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = Guid.NewGuid() };
+            var post = CreatePendingPost();
+            var actorId = Guid.NewGuid();
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = actorId
+            };
 
             SetupPost(post);
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(query.ActorId!.Value), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new UserId(actorId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync((User?)null);
 
             // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
+            var act = () => _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -163,19 +224,29 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_UnpublishedPostWithUnrelatedNormalActor_ThrowsNotFoundException()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var otherActor = CreateUser("other@test.com", UserLevel.Normal);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = otherActor.Id.Value };
+            var post = CreatePendingPost();
+            var otherActor = CreateUser(
+                "other@test.com",
+                UserLevel.Normal);
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = otherActor.Id.Value
+            };
 
             SetupPost(post);
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(otherActor.Id, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    otherActor.Id,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(otherActor);
 
             // Act
-            var act = () => _handler.Handle(query, CancellationToken.None);
+            var act = () => _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -185,65 +256,104 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         public async Task Handle_UnpublishedPostWithOwnerActor_ReturnsResponse()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = author.Id.Value };
+            var post = CreatePendingPost();
+
+            var owner = CreateUser(
+                "owner@test.com",
+                UserLevel.Owner);
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = owner.Id.Value
+            };
 
             SetupPost(post);
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(author.Id, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(author);
+                .Setup(x => x.GetByIdAsync(
+                    owner.Id,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(owner);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
             result.Status.Should().Be(PostStatus.PendingApproval);
+            result.Id.Should().Be(post.Id.Value);
+            result.ViewCount.Should().Be(0);
         }
 
         [Theory]
         [InlineData(UserLevel.Admin)]
         [InlineData(UserLevel.Owner)]
-        public async Task Handle_UnpublishedPostWithElevatedNonOwnerActor_ReturnsResponse(UserLevel actorLevel)
+        public async Task Handle_UnpublishedPostWithElevatedNonOwnerActor_ReturnsResponse(
+            UserLevel actorLevel)
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var elevatedActor = CreateUser("moderator@test.com", actorLevel);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = elevatedActor.Id.Value };
+            var post = CreatePendingPost();
+
+            var elevatedActor = CreateUser(
+                "moderator@test.com",
+                actorLevel);
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = elevatedActor.Id.Value
+            };
 
             SetupPost(post);
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(elevatedActor.Id, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    elevatedActor.Id,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(elevatedActor);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
             result.Status.Should().Be(PostStatus.PendingApproval);
+            result.Id.Should().Be(post.Id.Value);
         }
 
         [Fact]
         public async Task Handle_UnpublishedPostPreviewedByOwner_DoesNotIncrementViewCount()
         {
             // Arrange
-            var author = CreateUser("author@test.com", UserLevel.Author);
-            var post = CreatePendingPost(author);
-            var query = new GetPostBySlugQuery { Slug = post.Slug, ActorId = author.Id.Value };
+            var post = CreatePendingPost();
+
+            var owner = CreateUser(
+                "owner@test.com",
+                UserLevel.Owner);
+
+            var query = new GetPostBySlugQuery
+            {
+                Slug = post.Slug,
+                ActorId = owner.Id.Value
+            };
 
             SetupPost(post);
 
             _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(author.Id, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(author);
+                .Setup(x => x.GetByIdAsync(
+                    owner.Id,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(owner);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.ViewCount.Should().Be(0);
@@ -253,7 +363,8 @@ namespace blog.Tests.Unit.Application.Posts.Queries
                 Times.Never);
 
             _unitOfWorkMock.Verify(
-                x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+                x => x.SaveChangesAsync(
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
     }
