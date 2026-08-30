@@ -18,26 +18,51 @@ namespace blog.Tests.Unit.Application.Posts.Queries
 
         public GetPendingApprovalPostsQueryHandlerTests()
         {
-            _handler = new GetPendingApprovalPostsQueryHandler(_postRepositoryMock.Object);
+            _handler = new GetPendingApprovalPostsQueryHandler(
+                _postRepositoryMock.Object);
         }
 
-        private static User CreateUser(string email, UserLevel level)
+        private static User CreateUser(UserLevel level)
         {
-            var user = new User(email, "Ali", "Rezaei", "hashed_password");
+            var user = new User(
+                "author@test.com",
+                "Ali",
+                "Rezaei",
+                "hashed_password");
+
             if (level != UserLevel.Normal)
                 user.Promote(level);
 
             return user;
         }
 
+        private static Post CreatePendingPost()
+        {
+            var author = CreateUser(UserLevel.Normal);
+
+            return new Post(
+                "Pending Post",
+                "Summary for post",
+                null,
+                "Content",
+                ["dotnet"],
+                author,
+                new Category("Technology"));
+        }
+
         private static GetPendingApprovalPostsQuery ValidQuery => new()
         {
             ActorId = Guid.NewGuid(),
-            Paging = new PagedRequest { Page = 1, PageSize = 10 },
+            Paging = new PagedRequest
+            {
+                Page = 1,
+                PageSize = 10
+            },
             SortBy = PostSortBy.Newest
         };
 
-        private static PagedResult<Post> EmptyPagedResult => new([], 0, 1, 10);
+        private static PagedResult<Post> EmptyPagedResult =>
+            new([], 0, 1, 10);
 
         [Fact]
         public async Task Handle_ValidQuery_ReturnsPagedResult()
@@ -46,14 +71,21 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             var query = ValidQuery;
 
             _postRepositoryMock
-                .Setup(x => x.GetPendingApprovalAsync(query.Paging, query.SortBy, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetPendingApprovalAsync(
+                    query.Paging,
+                    query.SortBy,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyPagedResult);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
+            result.Items.Should().BeEmpty();
+            result.TotalCount.Should().Be(0);
         }
 
         [Fact]
@@ -61,20 +93,36 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         {
             // Arrange
             var query = ValidQuery;
-            var pendingAuthor = CreateUser("author@test.com", UserLevel.Author);
-            var posts = new List<Post> { new("Pending Post", "Summary for post", null, "Content", ["dotnet"], pendingAuthor, new Category("Technology")) };
-            var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
+            var post = CreatePendingPost();
+
+            var pagedResult = new PagedResult<Post>(
+                [post],
+                1,
+                1,
+                10);
 
             _postRepositoryMock
-                .Setup(x => x.GetPendingApprovalAsync(query.Paging, query.SortBy, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetPendingApprovalAsync(
+                    query.Paging,
+                    query.SortBy,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(pagedResult);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
             result.TotalCount.Should().Be(1);
-            result.Items.First().Status.Should().Be(PostStatus.PendingApproval);
+
+            var item = result.Items.First();
+
+            item.Title.Should().Be(post.Title);
+            item.Summary.Should().Be(post.Summary);
+            item.Status.Should().Be(PostStatus.PendingApproval);
+            item.Tags.Should().Contain("dotnet");
         }
     }
 }
