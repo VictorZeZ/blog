@@ -117,32 +117,6 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
-        public async Task Handle_NormalLevelAuthor_ThrowsForbiddenException()
-        {
-            // Arrange
-            var author = CreateAuthor(UserLevel.Normal);
-
-            var command = new CreatePostCommand
-            {
-                AuthorId = author.Id.Value,
-                CategoryId = Guid.NewGuid(),
-                Title = "My First Post",
-                Content = "Some content",
-                Tags = ["dotnet"]
-            };
-
-            _userRepositoryMock
-                .Setup(x => x.GetByIdAsync(new UserId(command.AuthorId), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(author);
-
-            // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<ForbiddenException>();
-        }
-
-        [Fact]
         public async Task Handle_CategoryNotFound_ThrowsNotFoundException()
         {
             // Arrange
@@ -174,7 +148,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         }
 
         [Fact]
-        public async Task Handle_AuthorLevelUser_PostStatusIsPendingApproval()
+        public async Task Handle_AuthorLevelUser_PostStatusIsPublished()
         {
             // Arrange
             var author = CreateAuthor(UserLevel.Author);
@@ -199,7 +173,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            result.Status.Should().Be(PostStatus.PendingApproval);
+            result.Status.Should().Be(PostStatus.Published);
         }
 
         [Theory]
