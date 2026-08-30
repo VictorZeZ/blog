@@ -18,12 +18,18 @@ namespace blog.Tests.Unit.Application.Posts.Queries
 
         public GetPostsByTagQueryHandlerTests()
         {
-            _handler = new GetPostsByTagQueryHandler(_postRepositoryMock.Object);
+            _handler = new GetPostsByTagQueryHandler(
+                _postRepositoryMock.Object);
         }
 
-        private static User CreateAuthor(UserLevel level)
+        private static User CreateUser(UserLevel level)
         {
-            var user = new User("author@test.com", "Ali", "Rezaei", "hashed_password");
+            var user = new User(
+                "author@test.com",
+                "Ali",
+                "Rezaei",
+                "hashed_password");
+
             if (level != UserLevel.Normal)
                 user.Promote(level);
 
@@ -32,12 +38,18 @@ namespace blog.Tests.Unit.Application.Posts.Queries
 
         private static GetPostsByTagQuery ValidQuery => new()
         {
-            Tag = "dotnet",
-            Paging = new PagedRequest { Page = 1, PageSize = 10 },
-            SortBy = PostSortBy.Newest
+            Tags = ["dotnet", "asp", "csharp"],
+            Paging = new PagedRequest
+            {
+                Page = 1,
+                PageSize = 10
+            },
+            SortBy = PostSortBy.Newest,
+            GroupingMode = PostTagGroupingMode.None
         };
 
-        private static PagedResult<Post> EmptyPagedResult => new([], 0, 1, 10);
+        private static PagedResult<Post> EmptyPagedResult =>
+            new([], 0, 1, 10);
 
         [Fact]
         public async Task Handle_ValidQuery_ReturnsPagedResult()
@@ -46,15 +58,23 @@ namespace blog.Tests.Unit.Application.Posts.Queries
             var query = ValidQuery;
 
             _postRepositoryMock
-                .Setup(x => x.GetByTagAsync(query.Paging, query.Tag, query.SortBy, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByTagAsync(
+                    query.Paging,
+                    query.Tags,
+                    query.SortBy,
+                    query.GroupingMode,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyPagedResult);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
             result.Items.Should().BeEmpty();
+            result.TotalCount.Should().Be(0);
         }
 
         [Fact]
@@ -62,38 +82,80 @@ namespace blog.Tests.Unit.Application.Posts.Queries
         {
             // Arrange
             var query = ValidQuery;
-            var author = CreateAuthor(UserLevel.Admin);
-            var posts = new List<Post> { new("Dotnet Post", "Summary for post", null, "Content", ["dotnet", "ef-core"], author, new Category("Technology")) };
-            var pagedResult = new PagedResult<Post>(posts, 1, 1, 10);
+            var author = CreateUser(UserLevel.Admin);
+
+            var posts = new List<Post>
+            {
+                new(
+                    "Dotnet Post",
+                    "Summary for post",
+                    null,
+                    "Content",
+                    ["dotnet", "ef-core"],
+                    author,
+                    new Category("Technology"))
+            };
+
+            var pagedResult = new PagedResult<Post>(
+                posts,
+                1,
+                1,
+                10);
 
             _postRepositoryMock
-                .Setup(x => x.GetByTagAsync(query.Paging, query.Tag, query.SortBy, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByTagAsync(
+                    query.Paging,
+                    query.Tags,
+                    query.SortBy,
+                    query.GroupingMode,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(pagedResult);
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
             result.TotalCount.Should().Be(1);
-            result.Items.First().Tags.Should().Contain("dotnet");
+
+            var item = result.Items.First();
+
+            item.Title.Should().Be("Dotnet Post");
+            item.Summary.Should().Be("Summary for post");
+            item.Tags.Should().Contain("dotnet");
+            item.Tags.Should().Contain("ef-core");
         }
 
         [Fact]
-        public async Task Handle_ValidQuery_PassesTagToRepository()
+        public async Task Handle_ValidQuery_PassesTagsAndGroupingModeToRepository()
         {
             // Arrange
             var query = ValidQuery;
 
             _postRepositoryMock
-                .Setup(x => x.GetByTagAsync(query.Paging, query.Tag, query.SortBy, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByTagAsync(
+                    query.Paging,
+                    query.Tags,
+                    query.SortBy,
+                    query.GroupingMode,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyPagedResult);
 
             // Act
-            await _handler.Handle(query, CancellationToken.None);
+            await _handler.Handle(
+                query,
+                CancellationToken.None);
 
             // Assert
             _postRepositoryMock.Verify(
-                x => x.GetByTagAsync(query.Paging, "dotnet", query.SortBy, It.IsAny<CancellationToken>()),
+                x => x.GetByTagAsync(
+                    query.Paging,
+                    query.Tags,
+                    query.SortBy,
+                    query.GroupingMode,
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
         }
     }
