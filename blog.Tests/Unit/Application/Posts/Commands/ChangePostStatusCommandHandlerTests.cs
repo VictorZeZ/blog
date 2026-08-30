@@ -26,26 +26,53 @@ namespace blog.Tests.Unit.Application.Posts.Commands
                 _unitOfWorkMock.Object);
         }
 
-        private static User CreateActor(UserLevel level)
+        private static User CreateUser(UserLevel level)
         {
-            var user = new User("actor@test.com", "Ali", "Rezaei", "hashed_password");
+            var user = new User(
+                "actor@test.com",
+                "Ali",
+                "Rezaei",
+                "hashed_password");
+
             if (level != UserLevel.Normal)
                 user.Promote(level);
 
             return user;
         }
 
-        private static Post CreatePost(UserLevel authorLevel)
+        private static Post CreatePendingPost()
         {
-            var author = CreateActor(authorLevel);
-            return new Post("My First Post", "Summary for post", null, "Some content", ["dotnet"], author, new Category("Technology"));
+            var author = CreateUser(UserLevel.Normal);
+
+            return new Post(
+                "My First Post",
+                "Summary for post",
+                null,
+                "Some content",
+                ["dotnet"],
+                author,
+                new Category("Technology"));
+        }
+
+        private static Post CreatePublishedPost()
+        {
+            var author = CreateUser(UserLevel.Author);
+
+            return new Post(
+                "My First Post",
+                "Summary for post",
+                null,
+                "Some content",
+                ["dotnet"],
+                author,
+                new Category("Technology"));
         }
 
         [Fact]
         public async Task Handle_ApproveAction_ReturnsPublishedStatus()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Author);
+            var post = CreatePendingPost();
 
             var command = new ChangePostStatusCommand
             {
@@ -55,23 +82,27 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
-            result.Status.Should().Be(PostStatus.Published);
             result.Id.Should().Be(post.Id.Value);
+            result.Status.Should().Be(PostStatus.Published);
         }
 
         [Fact]
         public async Task Handle_RejectAction_ReturnsRejectedStatus()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Author);
+            var post = CreatePendingPost();
 
             var command = new ChangePostStatusCommand
             {
@@ -81,16 +112,20 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
-            result.Status.Should().Be(PostStatus.Rejected);
             result.Id.Should().Be(post.Id.Value);
+            result.Status.Should().Be(PostStatus.Rejected);
         }
 
         [Fact]
@@ -105,11 +140,15 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Post?)null);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<NotFoundException>();
@@ -119,7 +158,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_ApproveAlreadyPublishedPost_ThrowsInvalidStateException()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Admin); // Admin-authored post is auto-published
+            var post = CreatePublishedPost();
 
             var command = new ChangePostStatusCommand
             {
@@ -129,11 +168,15 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<InvalidStateException>();
@@ -143,7 +186,7 @@ namespace blog.Tests.Unit.Application.Posts.Commands
         public async Task Handle_RejectAlreadyRejectedPost_ThrowsInvalidStateException()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Author);
+            var post = CreatePendingPost();
             post.Reject();
 
             var command = new ChangePostStatusCommand
@@ -154,21 +197,25 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            var act = () => _handler.Handle(command, CancellationToken.None);
+            var act = () => _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             await act.Should().ThrowAsync<InvalidStateException>();
         }
 
         [Fact]
-        public async Task Handle_ValidCommand_UpdatesPostInRepository()
+        public async Task Handle_ValidApproveCommand_UpdatesPostInRepository()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Author);
+            var post = CreatePendingPost();
 
             var command = new ChangePostStatusCommand
             {
@@ -178,23 +225,27 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            await _handler.Handle(command, CancellationToken.None);
+            await _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             _postRepositoryMock.Verify(
-                x => x.Update(It.IsAny<Post>()),
+                x => x.Update(post),
                 Times.Once);
         }
 
         [Fact]
-        public async Task Handle_ValidCommand_SavesChanges()
+        public async Task Handle_ValidApproveCommand_SavesChanges()
         {
             // Arrange
-            var post = CreatePost(UserLevel.Author);
+            var post = CreatePendingPost();
 
             var command = new ChangePostStatusCommand
             {
@@ -204,15 +255,20 @@ namespace blog.Tests.Unit.Application.Posts.Commands
             };
 
             _postRepositoryMock
-                .Setup(x => x.GetByIdAsync(new PostId(command.PostId), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetByIdAsync(
+                    new PostId(command.PostId),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(post);
 
             // Act
-            await _handler.Handle(command, CancellationToken.None);
+            await _handler.Handle(
+                command,
+                CancellationToken.None);
 
             // Assert
             _unitOfWorkMock.Verify(
-                x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+                x => x.SaveChangesAsync(
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
         }
     }
