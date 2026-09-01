@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
@@ -20,6 +21,8 @@ namespace blog.Domain.Posts.Repository
         Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default);
         Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default);
         Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
+        Task<PostStats> GetStatsAsync(int postsPerDayCount, CancellationToken ct = default);
+        Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Post post, CancellationToken ct = default);

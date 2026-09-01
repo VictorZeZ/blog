@@ -14,6 +14,7 @@ namespace blog.Domain.Users.Repository
         Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default);
         Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
         Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
+        Task<UserStats> GetStatsAsync(int registrationsPerDayCount, CancellationToken ct = default);
 
         // Write
         Task AddAsync(User user, CancellationToken ct = default);

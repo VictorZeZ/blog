@@ -10,6 +10,7 @@ namespace blog.Domain.Categories.Repository
         Task<Category?> GetBySlugAsync(string slug, CancellationToken ct = default);
         Task<IEnumerable<Category>> GetAllActiveAsync(CancellationToken ct = default);
         Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
+        Task<int> GetActiveCountAsync(CancellationToken ct = default);
 
         // Write
         Task AddAsync(Category category, CancellationToken ct = default);
