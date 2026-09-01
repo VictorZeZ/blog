@@ -144,34 +144,10 @@ namespace blog.Infrastructure.Repositories
             => await BuildStatsAsync(context.Posts, postsPerDayCount, ct);
 
         public async Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            => await BuildStatusReportAsync(context.Posts, from, to, ct);
 
-            var counts = await context.Posts
-                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    Total = g.Count(),
-                    Draft = g.Count(x => x.Status == PostStatus.Draft),
-                    PendingApproval = g.Count(x => x.Status == PostStatus.PendingApproval),
-                    Published = g.Count(x => x.Status == PostStatus.Published),
-                    Rejected = g.Count(x => x.Status == PostStatus.Rejected)
-                })
-                .FirstOrDefaultAsync(ct);
-
-            return new PostStatusReport
-            {
-                From = from,
-                To = to,
-                TotalCount = counts?.Total ?? 0,
-                DraftCount = counts?.Draft ?? 0,
-                PendingApprovalCount = counts?.PendingApproval ?? 0,
-                PublishedCount = counts?.Published ?? 0,
-                RejectedCount = counts?.Rejected ?? 0
-            };
-        }
+        public async Task<PostStatusReport> GetStatusReportByAuthorAsync(UserId authorId, DateOnly from, DateOnly to, CancellationToken ct = default)
+            => await BuildStatusReportAsync(context.Posts.Where(x => x.AuthorId == authorId), from, to, ct);
 
         public async Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default)
             => await BuildStatsAsync(context.Posts.Where(x => x.AuthorId == authorId), postsPerDayCount, ct);
@@ -267,6 +243,36 @@ namespace blog.Infrastructure.Repositories
                 RejectedCount = counts?.Rejected ?? 0,
                 TotalViewCount = counts?.TotalViews ?? 0,
                 PostsPerDay = postsPerDay
+            };
+        }
+
+        private static async Task<PostStatusReport> BuildStatusReportAsync(IQueryable<Post> query, DateOnly from, DateOnly to, CancellationToken ct)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var counts = await query
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Draft = g.Count(x => x.Status == PostStatus.Draft),
+                    PendingApproval = g.Count(x => x.Status == PostStatus.PendingApproval),
+                    Published = g.Count(x => x.Status == PostStatus.Published),
+                    Rejected = g.Count(x => x.Status == PostStatus.Rejected)
+                })
+                .FirstOrDefaultAsync(ct);
+
+            return new PostStatusReport
+            {
+                From = from,
+                To = to,
+                TotalCount = counts?.Total ?? 0,
+                DraftCount = counts?.Draft ?? 0,
+                PendingApprovalCount = counts?.PendingApproval ?? 0,
+                PublishedCount = counts?.Published ?? 0,
+                RejectedCount = counts?.Rejected ?? 0
             };
         }
     }
