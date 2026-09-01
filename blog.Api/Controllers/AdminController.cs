@@ -5,6 +5,7 @@ using blog.Application.Posts.Commands.ChangePostStatus;
 using blog.Application.Posts.Queries.GetAllPosts;
 using blog.Application.Posts.Queries.GetPendingApprovalPosts;
 using blog.Application.Posts.Queries.GetPostStatusReport;
+using blog.Application.Posts.Queries.GetUserPostStatusReport;
 using blog.Application.Users.Commands.BanUser;
 using blog.Application.Users.Commands.ChangeUserLevel;
 using blog.Application.Users.Queries.GetUsers;
@@ -112,6 +113,21 @@ namespace blog.Api.Controllers
             var query = new GetPostStatusReportQuery
             {
                 ActorId = CurrentUserId,
+                From = from,
+                To = to
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("posts/{authorId:guid}/status-report")]
+        public async Task<IActionResult> GetUserPostStatusReport(Guid authorId, [FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken ct)
+        {
+            var query = new GetUserPostStatusReportQuery
+            {
+                ActorId = CurrentUserId,
+                AuthorId = authorId,
                 From = from,
                 To = to
             };
