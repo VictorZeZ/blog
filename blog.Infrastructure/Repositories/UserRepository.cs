@@ -81,6 +81,42 @@ namespace blog.Infrastructure.Repositories
             return await projected.ToPagedResultAsync(paging, ct);
         }
 
+        public async Task<UserStats> GetStatsAsync(int registrationsPerDayCount, CancellationToken ct = default)
+        {
+            var counts = await context.Users
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Normal = g.Count(x => x.Level == UserLevel.Normal),
+                    Author = g.Count(x => x.Level == UserLevel.Author),
+                    Admin = g.Count(x => x.Level == UserLevel.Admin),
+                    Owner = g.Count(x => x.Level == UserLevel.Owner),
+                    Banned = g.Count(x => x.IsBanned)
+                })
+                .FirstOrDefaultAsync(ct);
+
+            var since = DateTime.UtcNow.Date.AddDays(-(registrationsPerDayCount - 1));
+
+            var registrationsPerDay = await context.Users
+                .Where(x => x.CreatedAt >= since)
+                .GroupBy(x => x.CreatedAt.Date)
+                .Select(g => new DailyCount(DateOnly.FromDateTime(g.Key), g.Count()))
+                .OrderBy(x => x.Date)
+                .ToListAsync(ct);
+
+            return new UserStats
+            {
+                TotalCount = counts?.Total ?? 0,
+                NormalCount = counts?.Normal ?? 0,
+                AuthorCount = counts?.Author ?? 0,
+                AdminCount = counts?.Admin ?? 0,
+                OwnerCount = counts?.Owner ?? 0,
+                BannedCount = counts?.Banned ?? 0,
+                RegistrationsPerDay = registrationsPerDay
+            };
+        }
+
         public async Task AddAsync(User user, CancellationToken ct = default)
             => await context.Users.AddAsync(user, ct);
 

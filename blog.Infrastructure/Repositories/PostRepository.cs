@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
@@ -139,6 +140,13 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
+        public async Task<PostStats> GetStatsAsync(int postsPerDayCount, CancellationToken ct = default)
+            => await BuildStatsAsync(context.Posts, postsPerDayCount, ct);
+
+        public async Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default)
+            => await BuildStatsAsync(context.Posts.Where(x => x.AuthorId == authorId), postsPerDayCount, ct);
+
+
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts.AnyAsync(x => x.Slug == slug, ct);
 
@@ -194,6 +202,42 @@ namespace blog.Infrastructure.Repositories
             }
 
             return result;
+        }
+
+        private static async Task<PostStats> BuildStatsAsync(IQueryable<Post> query, int postsPerDayCount, CancellationToken ct)
+        {
+            var counts = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Draft = g.Count(x => x.Status == PostStatus.Draft),
+                    PendingApproval = g.Count(x => x.Status == PostStatus.PendingApproval),
+                    Published = g.Count(x => x.Status == PostStatus.Published),
+                    Rejected = g.Count(x => x.Status == PostStatus.Rejected),
+                    TotalViews = g.Sum(x => x.ViewCount)
+                })
+                .FirstOrDefaultAsync(ct);
+
+            var since = DateTime.UtcNow.Date.AddDays(-(postsPerDayCount - 1));
+
+            var postsPerDay = await query
+                .Where(x => x.CreatedAt >= since)
+                .GroupBy(x => x.CreatedAt.Date)
+                .Select(g => new DailyCount(DateOnly.FromDateTime(g.Key), g.Count()))
+                .OrderBy(x => x.Date)
+                .ToListAsync(ct);
+
+            return new PostStats
+            {
+                TotalCount = counts?.Total ?? 0,
+                DraftCount = counts?.Draft ?? 0,
+                PendingApprovalCount = counts?.PendingApproval ?? 0,
+                PublishedCount = counts?.Published ?? 0,
+                RejectedCount = counts?.Rejected ?? 0,
+                TotalViewCount = counts?.TotalViews ?? 0,
+                PostsPerDay = postsPerDay
+            };
         }
     }
 }

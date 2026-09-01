@@ -23,6 +23,9 @@ namespace blog.Infrastructure.Repositories
         public async Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
             => await context.Categories.AnyAsync(x => x.Name == name, ct);
 
+        public async Task<int> GetActiveCountAsync(CancellationToken ct = default)
+            => await context.Categories.CountAsync(x => !x.IsDeleted, ct);
+
         public async Task AddAsync(Category category, CancellationToken ct = default)
             => await context.Categories.AddAsync(category, ct);
 
