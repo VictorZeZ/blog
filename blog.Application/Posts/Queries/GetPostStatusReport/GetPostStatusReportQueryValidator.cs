@@ -1,12 +1,10 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Posts.Common;
+using FluentValidation;
 
 namespace blog.Application.Posts.Queries.GetPostStatusReport
 {
     public class GetPostStatusReportQueryValidator : AbstractValidator<GetPostStatusReportQuery>
     {
-        private const int MinRangeDays = 1;
-        private const int MaxRangeDays = 30;
-
         public GetPostStatusReportQueryValidator()
         {
             RuleFor(x => x.ActorId)
@@ -21,15 +19,9 @@ namespace blog.Application.Posts.Queries.GetPostStatusReport
                     .WithMessage("To must be on or after From");
 
             RuleFor(x => x)
-                .Must(HaveValidRangeLength)
-                    .WithMessage($"Date range must span between {MinRangeDays} and {MaxRangeDays} days (inclusive)")
+                .Must(x => DateRangeValidationRules.IsWithinAllowedRange(x.From, x.To))
+                    .WithMessage($"Date range must span between {DateRangeValidationRules.MinRangeDays} and {DateRangeValidationRules.MaxRangeDays} days (inclusive)")
                     .When(x => x.To >= x.From);
-        }
-
-        private static bool HaveValidRangeLength(GetPostStatusReportQuery query)
-        {
-            var rangeDays = query.To.DayNumber - query.From.DayNumber + 1;
-            return rangeDays is >= MinRangeDays and <= MaxRangeDays;
         }
     }
 }
