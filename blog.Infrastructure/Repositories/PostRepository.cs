@@ -227,12 +227,17 @@ namespace blog.Infrastructure.Repositories
 
             var since = DateTime.UtcNow.Date.AddDays(-(postsPerDayCount - 1));
 
-            var postsPerDay = await query
-                .Where(x => x.CreatedAt >= since)
-                .GroupBy(x => x.CreatedAt.Date)
-                .Select(g => new DailyCount(DateOnly.FromDateTime(g.Key), g.Count()))
-                .OrderBy(x => x.Date)
+            var rows = await query
+                .Where(p => p.CreatedAt >= since)
+                .GroupBy(p => p.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .OrderBy(e => e.Date)
                 .ToListAsync(ct);
+
+            var postsPerDay = rows
+                .Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count))
+                .ToList();
+
 
             return new PostStats
             {
