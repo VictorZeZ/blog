@@ -6,6 +6,7 @@ using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
+using blog.Domain.Users.Common;
 using blog.Domain.Users.Types;
 using blog.Infrastructure.Persistence;
 using blog.Infrastructure.Persistence.Extensions;
@@ -209,6 +210,46 @@ namespace blog.Infrastructure.Repositories
                         TotalViewCount = posts.Sum(p => (int?)p.ViewCount) ?? 0
                     })
                 .OrderBy(x => x.Name);
+
+            return await query.ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<Post>> GetTopViewedAsync(DateOnly from, DateOnly to, int topN, CategoryId? categoryId, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var query = context.Posts
+                .Include(x => x.Author)
+                .Include(x => x.Category)
+                .Where(x => x.Status == PostStatus.Published && x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
+
+            if (categoryId is not null)
+                query = query.Where(x => x.CategoryId == categoryId);
+
+            return await query
+                .OrderByDescending(x => x.ViewCount)
+                .Take(topN)
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<TopAuthorResult>> GetTopAuthorsAsync(DateOnly from, DateOnly to, int topN, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var query = context.Posts
+                .Where(x => x.Status == PostStatus.Published && x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(x => new { x.AuthorId, x.Author.FirstName, x.Author.LastName })
+                .Select(g => new TopAuthorResult
+                {
+                    AuthorId = g.Key.AuthorId.Value,
+                    FullName = g.Key.FirstName + " " + g.Key.LastName,
+                    PublishedCount = g.Count(),
+                    TotalViewCount = g.Sum(p => p.ViewCount)
+                })
+                .OrderByDescending(x => x.TotalViewCount)
+                .Take(topN);
 
             return await query.ToListAsync(ct);
         }

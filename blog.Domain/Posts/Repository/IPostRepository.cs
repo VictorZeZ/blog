@@ -5,6 +5,7 @@ using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
+using blog.Domain.Users.Common;
 using blog.Domain.Users.Types;
 
 namespace blog.Domain.Posts.Repository
@@ -30,6 +31,8 @@ namespace blog.Domain.Posts.Repository
         Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default);
         Task<PostStatusReport> GetStatusReportByCategoryAsync(CategoryId categoryId, DateOnly from, DateOnly to, CancellationToken ct = default);
         Task<IReadOnlyList<CategoryPerformanceResult>> GetCategoryBreakdownAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
+        Task<IReadOnlyList<Post>> GetTopViewedAsync(DateOnly from, DateOnly to, int topN, CategoryId? categoryId, CancellationToken ct = default);
+        Task<IReadOnlyList<TopAuthorResult>> GetTopAuthorsAsync(DateOnly from, DateOnly to, int topN, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Post post, CancellationToken ct = default);

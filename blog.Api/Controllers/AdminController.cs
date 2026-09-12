@@ -8,11 +8,14 @@ using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
 using blog.Application.Posts.Queries.GetPendingApprovalPosts;
 using blog.Application.Posts.Queries.GetPostsReport;
 using blog.Application.Posts.Queries.GetPostStatusReport;
+using blog.Application.Posts.Queries.GetTopPosts;
 using blog.Application.Posts.Queries.GetUserPostStatusReport;
 using blog.Application.Users.Commands.BanUser;
 using blog.Application.Users.Commands.ChangeUserLevel;
+using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUsers;
 using blog.Domain.Common;
+using blog.Domain.Common.Reports;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Users.Enums;
 using MediatR;
@@ -181,6 +184,37 @@ namespace blog.Api.Controllers
                 SortBy = sortBy,
                 CategoryId = categoryId,
                 AuthorId = authorId
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("posts/top")]
+        public async Task<IActionResult> GetTopPosts([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int topN = TopNRules.DefaultTopN, [FromQuery] Guid? categoryId = null, CancellationToken ct = default)
+        {
+            var query = new GetTopPostsQuery
+            {
+                ActorId = CurrentUserId,
+                From = from,
+                To = to,
+                TopN = topN,
+                CategoryId = categoryId
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("users/top-authors")]
+        public async Task<IActionResult> GetTopAuthors([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int topN = TopNRules.DefaultTopN, CancellationToken ct = default)
+        {
+            var query = new GetTopAuthorsQuery
+            {
+                ActorId = CurrentUserId,
+                From = from,
+                To = to,
+                TopN = topN
             };
 
             var result = await Mediator.Send(query, ct);
