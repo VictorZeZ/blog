@@ -1,4 +1,5 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Categories.Types;
+using blog.Domain.Common;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -40,6 +41,36 @@ namespace blog.Infrastructure.Repositories
                 PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
                 _ => query
             };
+
+            query = query.ApplySorting(sortBy);
+
+            return await query.ToPagedResultAsync(paging, ct);
+        }
+
+        public async Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var query = context.Posts
+                .Include(x => x.Author)
+                .Include(x => x.Category)
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
+
+            query = filter switch
+            {
+                PostFilter.Draft => query.Where(x => x.Status == PostStatus.Draft),
+                PostFilter.PendingApproval => query.Where(x => x.Status == PostStatus.PendingApproval),
+                PostFilter.Published => query.Where(x => x.Status == PostStatus.Published),
+                PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
+                _ => query
+            };
+
+            if (categoryId is not null)
+                query = query.Where(x => x.CategoryId == categoryId);
+
+            if (authorId is not null)
+                query = query.Where(x => x.AuthorId == authorId);
 
             query = query.ApplySorting(sortBy);
 

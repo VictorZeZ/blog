@@ -1,4 +1,5 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Categories.Types;
+using blog.Domain.Common;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
@@ -25,6 +26,7 @@ namespace blog.Domain.Posts.Repository
         Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default);
         Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
         Task<PostStatusReport> GetStatusReportByAuthorAsync(UserId authorId, DateOnly from, DateOnly to, CancellationToken ct = default);
+        Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Post post, CancellationToken ct = default);
