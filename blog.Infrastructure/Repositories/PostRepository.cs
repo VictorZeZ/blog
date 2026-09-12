@@ -180,6 +180,9 @@ namespace blog.Infrastructure.Repositories
         public async Task<PostStatusReport> GetStatusReportByAuthorAsync(UserId authorId, DateOnly from, DateOnly to, CancellationToken ct = default)
             => await BuildStatusReportAsync(context.Posts.Where(x => x.AuthorId == authorId), from, to, ct);
 
+        public async Task<PostStatusReport> GetStatusReportByCategoryAsync(CategoryId categoryId, DateOnly from, DateOnly to, CancellationToken ct = default)
+            => await BuildStatusReportAsync(context.Posts.Where(x => x.CategoryId == categoryId), from, to, ct);
+
         public async Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default)
             => await BuildStatsAsync(context.Posts.Where(x => x.AuthorId == authorId), postsPerDayCount, ct);
 

@@ -3,6 +3,7 @@ using blog.Api.DTOs.Posts;
 using blog.Api.DTOs.Users;
 using blog.Application.Posts.Commands.ChangePostStatus;
 using blog.Application.Posts.Queries.GetAllPosts;
+using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
 using blog.Application.Posts.Queries.GetPendingApprovalPosts;
 using blog.Application.Posts.Queries.GetPostsReport;
 using blog.Application.Posts.Queries.GetPostStatusReport;
@@ -129,6 +130,21 @@ namespace blog.Api.Controllers
             {
                 ActorId = CurrentUserId,
                 AuthorId = authorId,
+                From = from,
+                To = to
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("categories/{categoryId:guid}/status-report")]
+        public async Task<IActionResult> GetCategoryPostStatusReport(Guid categoryId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+        {
+            var query = new GetCategoryPostStatusReportQuery
+            {
+                ActorId = CurrentUserId,
+                CategoryId = categoryId,
                 From = from,
                 To = to
             };
