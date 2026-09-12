@@ -108,7 +108,7 @@ namespace blog.Api.Controllers
         }
 
         [HttpGet("posts/status-report")]
-        public async Task<IActionResult> GetPostStatusReport([FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken ct)
+        public async Task<IActionResult> GetPostStatusReport([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
         {
             var query = new GetPostStatusReportQuery
             {
@@ -122,7 +122,7 @@ namespace blog.Api.Controllers
         }
 
         [HttpGet("posts/{authorId:guid}/status-report")]
-        public async Task<IActionResult> GetUserPostStatusReport(Guid authorId, [FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken ct)
+        public async Task<IActionResult> GetUserPostStatusReport(Guid authorId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
         {
             var query = new GetUserPostStatusReportQuery
             {

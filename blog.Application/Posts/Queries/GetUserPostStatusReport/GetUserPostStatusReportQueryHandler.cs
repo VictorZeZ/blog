@@ -1,4 +1,5 @@
-﻿using blog.Domain.Posts.Repository;
+﻿using blog.Domain.Common.Reports;
+using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Types;
 using MediatR;
 
@@ -8,7 +9,9 @@ namespace blog.Application.Posts.Queries.GetUserPostStatusReport
     {
         public async Task<GetUserPostStatusReportResponse> Handle(GetUserPostStatusReportQuery request, CancellationToken cancellationToken)
         {
-            var report = await postRepository.GetStatusReportByAuthorAsync(new UserId(request.AuthorId), request.From, request.To, cancellationToken);
+            var range = ReportDateRangeRules.Resolve(request.From, request.To);
+
+            var report = await postRepository.GetStatusReportByAuthorAsync(new UserId(request.AuthorId), range.From, range.To, cancellationToken);
 
             return new GetUserPostStatusReportResponse
             {

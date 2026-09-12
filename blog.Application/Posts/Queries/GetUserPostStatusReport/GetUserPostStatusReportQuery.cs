@@ -8,8 +8,8 @@ namespace blog.Application.Posts.Queries.GetUserPostStatusReport
     {
         public Guid ActorId { get; init; }
         public Guid AuthorId { get; init; }
-        public DateOnly From { get; init; }
-        public DateOnly To { get; init; }
+        public DateOnly? From { get; init; }
+        public DateOnly? To { get; init; }
 
         public UserLevel MinimumLevel => UserLevel.Admin;
     }
