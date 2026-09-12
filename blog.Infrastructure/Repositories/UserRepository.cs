@@ -98,12 +98,16 @@ namespace blog.Infrastructure.Repositories
 
             var since = DateTime.UtcNow.Date.AddDays(-(registrationsPerDayCount - 1));
 
-            var registrationsPerDay = await context.Users
+            var rows = await context.Users
                 .Where(x => x.CreatedAt >= since)
                 .GroupBy(x => x.CreatedAt.Date)
-                .Select(g => new DailyCount(DateOnly.FromDateTime(g.Key), g.Count()))
-                .OrderBy(x => x.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .OrderBy(e => e.Date)
                 .ToListAsync(ct);
+
+            var registrationsPerDay = rows
+                .Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count))
+                .ToList();
 
             return new UserStats
             {
