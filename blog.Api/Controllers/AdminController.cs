@@ -13,6 +13,7 @@ using blog.Application.Posts.Queries.GetUserPostStatusReport;
 using blog.Application.Users.Commands.BanUser;
 using blog.Application.Users.Commands.ChangeUserLevel;
 using blog.Application.Users.Queries.GetTopAuthors;
+using blog.Application.Users.Queries.GetUserActivityReport;
 using blog.Application.Users.Queries.GetUsers;
 using blog.Domain.Common;
 using blog.Domain.Common.Reports;
@@ -215,6 +216,20 @@ namespace blog.Api.Controllers
                 From = from,
                 To = to,
                 TopN = topN
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("users/activity-report")]
+        public async Task<IActionResult> GetUserActivityReport([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+        {
+            var query = new GetUserActivityReportQuery
+            {
+                ActorId = CurrentUserId,
+                From = from,
+                To = to
             };
 
             var result = await Mediator.Send(query, ct);

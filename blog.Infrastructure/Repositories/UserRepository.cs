@@ -121,6 +121,48 @@ namespace blog.Infrastructure.Repositories
             };
         }
 
+        public async Task<UserActivityReport> GetActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var registrations = await context.Users
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Normal = g.Count(x => x.Level == UserLevel.Normal),
+                    Author = g.Count(x => x.Level == UserLevel.Author),
+                    Admin = g.Count(x => x.Level == UserLevel.Admin),
+                    Owner = g.Count(x => x.Level == UserLevel.Owner)
+                })
+                .FirstOrDefaultAsync(ct);
+
+            var confirmedCount = await context.Users
+                .CountAsync(x => x.EmailConfirmedAt >= fromUtc && x.EmailConfirmedAt < toExclusiveUtc, ct);
+
+            var bannedCount = await context.Users
+                .CountAsync(x => x.BannedAt >= fromUtc && x.BannedAt < toExclusiveUtc, ct);
+
+            var deletedCount = await context.Users
+                .CountAsync(x => x.DeletedAt >= fromUtc && x.DeletedAt < toExclusiveUtc, ct);
+
+            return new UserActivityReport
+            {
+                From = from,
+                To = to,
+                NewRegistrationsCount = registrations?.Total ?? 0,
+                ConfirmedCount = confirmedCount,
+                BannedCount = bannedCount,
+                DeletedCount = deletedCount,
+                NewNormalCount = registrations?.Normal ?? 0,
+                NewAuthorCount = registrations?.Author ?? 0,
+                NewAdminCount = registrations?.Admin ?? 0,
+                NewOwnerCount = registrations?.Owner ?? 0
+            };
+        }
+
         public async Task AddAsync(User user, CancellationToken ct = default)
             => await context.Users.AddAsync(user, ct);
 
