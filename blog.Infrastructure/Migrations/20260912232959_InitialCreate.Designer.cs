@@ -14,7 +14,7 @@ using blog.Infrastructure.Persistence;
 namespace blog.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260820152240_InitialCreate")]
+    [Migration("20260912232959_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -186,6 +186,8 @@ namespace blog.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Tags"), "GIN");
 
+                    b.HasIndex("Status", "CreatedAt");
+
                     b.ToTable("Posts", (string)null);
                 });
 
@@ -308,8 +310,16 @@ namespace blog.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BannedAt");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("DeletedAt");
+
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("EmailConfirmedAt");
 
                     b.HasIndex(new[] { "Email" }, "IX_Users_Email_Trgm");
 

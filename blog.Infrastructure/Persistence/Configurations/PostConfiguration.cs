@@ -47,6 +47,8 @@ namespace blog.Infrastructure.Persistence.Configurations
             builder.HasIndex(x => x.Tags)
                 .HasMethod("GIN");
 
+            builder.HasIndex(x => new { x.Status, x.CreatedAt });
+
             builder.Property(x => x.Status)
                 .HasConversion<int>()
                 .HasColumnType("integer")

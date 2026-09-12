@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Migrations;
 using NpgsqlTypes;
 
 #nullable disable
@@ -181,6 +183,11 @@ namespace blog.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Posts_Status_CreatedAt",
+                table: "Posts",
+                columns: new[] { "Status", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Posts_Tags",
                 table: "Posts",
                 column: "Tags")
@@ -198,6 +205,21 @@ namespace blog.Infrastructure.Migrations
                 columns: new[] { "UserId", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Users_BannedAt",
+                table: "Users",
+                column: "BannedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_CreatedAt",
+                table: "Users",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_DeletedAt",
+                table: "Users",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
@@ -209,6 +231,11 @@ namespace blog.Infrastructure.Migrations
                 column: "Email")
                 .Annotation("Npgsql:IndexMethod", "gin")
                 .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_EmailConfirmedAt",
+                table: "Users",
+                column: "EmailConfirmedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_FullNameSearch_Trgm",

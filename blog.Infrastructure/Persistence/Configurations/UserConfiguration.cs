@@ -65,6 +65,14 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            builder.HasIndex(x => x.CreatedAt);
+
+            builder.HasIndex(x => x.EmailConfirmedAt);
+
+            builder.HasIndex(x => x.BannedAt);
+
+            builder.HasIndex(x => x.DeletedAt);
+
             builder.Property(x => x.TwoFactorEnabled)
                 .HasColumnType("boolean")
                 .HasDefaultValue(false)
