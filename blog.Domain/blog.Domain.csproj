@@ -7,12 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <Compile Remove="Categories\Enums\**" />
+    <EmbeddedResource Remove="Categories\Enums\**" />
+    <None Remove="Categories\Enums\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Categories\Enums\" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 
 </Project>

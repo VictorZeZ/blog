@@ -1,6 +1,7 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Posts;
 using blog.Api.DTOs.Users;
+using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
 using blog.Application.Posts.Commands.ChangePostStatus;
 using blog.Application.Posts.Queries.GetAllPosts;
 using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
@@ -145,6 +146,20 @@ namespace blog.Api.Controllers
             {
                 ActorId = CurrentUserId,
                 CategoryId = categoryId,
+                From = from,
+                To = to
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("categories/performance-report")]
+        public async Task<IActionResult> GetCategoryPerformanceReport([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+        {
+            var query = new GetCategoryPerformanceReportQuery
+            {
+                ActorId = CurrentUserId,
                 From = from,
                 To = to
             };

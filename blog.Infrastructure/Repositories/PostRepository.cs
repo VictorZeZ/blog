@@ -1,4 +1,5 @@
-﻿using blog.Domain.Categories.Types;
+﻿using blog.Domain.Categories.Common;
+using blog.Domain.Categories.Types;
 using blog.Domain.Common;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
@@ -183,9 +184,37 @@ namespace blog.Infrastructure.Repositories
         public async Task<PostStatusReport> GetStatusReportByCategoryAsync(CategoryId categoryId, DateOnly from, DateOnly to, CancellationToken ct = default)
             => await BuildStatusReportAsync(context.Posts.Where(x => x.CategoryId == categoryId), from, to, ct);
 
+        public async Task<IReadOnlyList<CategoryPerformanceResult>> GetCategoryBreakdownAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var postsInRange = context.Posts.Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
+
+            var query = context.Categories
+                .Where(c => !c.IsDeleted)
+                .GroupJoin(
+                    postsInRange,
+                    category => category.Id,
+                    post => post.CategoryId,
+                    (category, posts) => new CategoryPerformanceResult
+                    {
+                        CategoryId = category.Id.Value,
+                        Name = category.Name,
+                        DraftCount = posts.Count(p => p.Status == PostStatus.Draft),
+                        PendingApprovalCount = posts.Count(p => p.Status == PostStatus.PendingApproval),
+                        PublishedCount = posts.Count(p => p.Status == PostStatus.Published),
+                        RejectedCount = posts.Count(p => p.Status == PostStatus.Rejected),
+                        TotalCount = posts.Count(),
+                        TotalViewCount = posts.Sum(p => (int?)p.ViewCount) ?? 0
+                    })
+                .OrderBy(x => x.Name);
+
+            return await query.ToListAsync(ct);
+        }
+
         public async Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default)
             => await BuildStatsAsync(context.Posts.Where(x => x.AuthorId == authorId), postsPerDayCount, ct);
-
 
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts.AnyAsync(x => x.Slug == slug, ct);
