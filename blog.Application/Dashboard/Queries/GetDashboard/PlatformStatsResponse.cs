@@ -1,4 +1,6 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Posts.Common;
+using blog.Domain.Users.Common;
 
 namespace blog.Application.Dashboard.Queries.GetDashboard
 {
@@ -9,5 +11,7 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
         public int TotalPostCount { get; init; }
         public int TotalViewCount { get; init; }
         public IReadOnlyList<DailyCount> RegistrationsPerDay { get; init; } = [];
+        public IReadOnlyList<PostSummaryResponse> TopPosts { get; init; } = [];
+        public IReadOnlyList<TopAuthorResult> TopAuthors { get; init; } = [];
     }
 }

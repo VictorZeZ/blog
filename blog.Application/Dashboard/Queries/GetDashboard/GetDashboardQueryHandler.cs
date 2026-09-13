@@ -1,5 +1,7 @@
 ﻿using blog.Domain.Categories.Repository;
+using blog.Domain.Common.Reports;
 using blog.Domain.Exceptions;
+using blog.Domain.Posts.Extensions;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Extensions;
@@ -60,6 +62,10 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
             var userStats = await userRepository.GetStatsAsync(ChartDayCount, cancellationToken);
             var activeCategoryCount = await categoryRepository.GetActiveCountAsync(cancellationToken);
 
+            var range = ReportDateRangeRules.Resolve(null, null);
+            var topPosts = await postRepository.GetTopViewedAsync(range.From, range.To, TopNRules.DefaultTopN, null, cancellationToken);
+            var topAuthors = await postRepository.GetTopAuthorsAsync(range.From, range.To, TopNRules.DefaultTopN, cancellationToken);
+
             var moderationQueue = new ModerationQueueResponse
             {
                 PendingApprovalCount = platformPostStats.PendingApprovalCount,
@@ -72,7 +78,9 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 BannedUserCount = userStats.BannedCount,
                 TotalPostCount = platformPostStats.TotalCount,
                 TotalViewCount = platformPostStats.TotalViewCount,
-                RegistrationsPerDay = userStats.RegistrationsPerDay
+                RegistrationsPerDay = userStats.RegistrationsPerDay,
+                TopPosts = topPosts.Select(p => p.ToSummaryResponse()).ToList(),
+                TopAuthors = topAuthors
             };
 
             var ownerOverview = actor.Level == UserLevel.Owner
