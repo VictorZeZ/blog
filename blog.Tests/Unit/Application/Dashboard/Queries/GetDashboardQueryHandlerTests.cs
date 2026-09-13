@@ -252,6 +252,23 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(platformPostStats);
 
+            _postRepositoryMock
+                .Setup(x => x.GetTopViewedAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    null,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
+
+            _postRepositoryMock
+                .Setup(x => x.GetTopAuthorsAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
+
             _userRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
@@ -334,6 +351,23 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     TotalCount = 500,
                     PendingApprovalCount = 15
                 });
+
+            _postRepositoryMock
+                .Setup(x => x.GetTopViewedAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    null,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
+
+            _postRepositoryMock
+                .Setup(x => x.GetTopAuthorsAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
 
             var userStats = CreateUserStats();
 
@@ -501,6 +535,23 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     30,
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetTopViewedAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    null,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
+
+            _postRepositoryMock
+                .Setup(x => x.GetTopAuthorsAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
 
             _userRepositoryMock
                 .Setup(x => x.GetStatsAsync(
