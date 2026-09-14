@@ -1,0 +1,8 @@
+# Use this workspace to collaborate
+workspace:
+  id: ""
+
+localResources:
+  specs:
+    - ../blog.Api/obj/Debug/net10.0/EndpointInfo/blog.Api.json
+    - ../blog.Api/obj/Release/net10.0/EndpointInfo/blog.Api.json
