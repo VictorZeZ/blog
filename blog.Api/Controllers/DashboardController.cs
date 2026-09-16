@@ -7,6 +7,7 @@ using blog.Application.Posts.Queries.GetPostsReport;
 using blog.Application.Posts.Queries.GetPostStatusReport;
 using blog.Application.Posts.Queries.GetTopPosts;
 using blog.Application.Posts.Queries.GetUserPostStatusReport;
+using blog.Application.Users.Queries.GetMySessions;
 using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUserActivityReport;
 using blog.Domain.Common;
@@ -39,6 +40,15 @@ namespace blog.Api.Controllers
                 From = from,
                 To = to
             };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("sessions")]
+        public async Task<IActionResult> GetMySessions(CancellationToken ct)
+        {
+            var query = new GetMySessionsQuery { ActorId = CurrentUserId };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);
