@@ -2,6 +2,7 @@
 using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
 using blog.Application.Dashboard.Queries.GetDashboard;
 using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
+using blog.Application.Posts.Queries.GetMyPostStatusReport;
 using blog.Application.Posts.Queries.GetPostsReport;
 using blog.Application.Posts.Queries.GetPostStatusReport;
 using blog.Application.Posts.Queries.GetTopPosts;
@@ -24,6 +25,20 @@ namespace blog.Api.Controllers
         public async Task<IActionResult> GetDashboard(CancellationToken ct)
         {
             var query = new GetDashboardQuery { ActorId = CurrentUserId };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("posts/my-status-report")]
+        public async Task<IActionResult> GetMyPostStatusReport([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+        {
+            var query = new GetMyPostStatusReportQuery
+            {
+                ActorId = CurrentUserId,
+                From = from,
+                To = to
+            };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);
