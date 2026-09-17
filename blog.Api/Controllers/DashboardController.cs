@@ -7,6 +7,7 @@ using blog.Application.Posts.Queries.GetPostsReport;
 using blog.Application.Posts.Queries.GetPostStatusReport;
 using blog.Application.Posts.Queries.GetTopPosts;
 using blog.Application.Posts.Queries.GetUserPostStatusReport;
+using blog.Application.Users.Commands.RevokeSession;
 using blog.Application.Users.Queries.GetMySessions;
 using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUserActivityReport;
@@ -51,6 +52,19 @@ namespace blog.Api.Controllers
             var query = new GetMySessionsQuery { ActorId = CurrentUserId };
 
             var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpDelete("sessions/{sessionId:guid}")]
+        public async Task<IActionResult> RevokeSession(Guid sessionId, CancellationToken ct)
+        {
+            var command = new RevokeSessionCommand
+            {
+                ActorId = CurrentUserId,
+                SessionId = sessionId
+            };
+
+            var result = await Mediator.Send(command, ct);
             return Ok(result);
         }
 

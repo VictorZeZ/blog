@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Tokens.Entities;
 using blog.Domain.Tokens.Enums;
 using blog.Domain.Tokens.Repository;
+using blog.Domain.Tokens.Types;
 using blog.Domain.Users.Types;
 using blog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,9 @@ namespace blog.Infrastructure.Repositories
 {
     public class RefreshTokenRepository(AppDbContext context) : IRefreshTokenRepository
     {
+        public async Task<RefreshToken?> GetByIdAsync(RefreshTokenId id, CancellationToken ct = default)
+            => await context.RefreshTokens.FirstOrDefaultAsync(x => x.Id == id, ct);
+
         public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default)
             => await context.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
 

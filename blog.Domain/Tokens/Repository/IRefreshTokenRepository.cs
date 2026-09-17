@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Tokens.Entities;
+using blog.Domain.Tokens.Types;
 using blog.Domain.Users.Types;
 
 namespace blog.Domain.Tokens.Repository
@@ -6,6 +7,7 @@ namespace blog.Domain.Tokens.Repository
     public interface IRefreshTokenRepository
     {
         // Read
+        Task<RefreshToken?> GetByIdAsync(RefreshTokenId id, CancellationToken ct = default);
         Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default);
         Task<IEnumerable<RefreshToken>> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default);
 
