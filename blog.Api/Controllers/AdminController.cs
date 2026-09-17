@@ -6,6 +6,7 @@ using blog.Application.Posts.Queries.GetAllPosts;
 using blog.Application.Posts.Queries.GetPendingApprovalPosts;
 using blog.Application.Users.Commands.BanUser;
 using blog.Application.Users.Commands.ChangeUserLevel;
+using blog.Application.Users.Queries.GetUserDetails;
 using blog.Application.Users.Queries.GetUsers;
 using blog.Domain.Common;
 using blog.Domain.Posts.Enums;
@@ -28,6 +29,19 @@ namespace blog.Api.Controllers
                 Paging = paging,
                 SortBy = sortBy,
                 Filter = filter
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("users/{targetUserId:guid}")]
+        public async Task<IActionResult> GetUserDetails(Guid targetUserId, CancellationToken ct)
+        {
+            var query = new GetUserDetailsQuery
+            {
+                ActorId = CurrentUserId,
+                TargetUserId = targetUserId
             };
 
             var result = await Mediator.Send(query, ct);
