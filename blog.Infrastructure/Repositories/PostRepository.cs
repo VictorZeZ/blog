@@ -28,7 +28,7 @@ namespace blog.Infrastructure.Repositories
                 .Include(x => x.Category)
                 .FirstOrDefaultAsync(x => x.Slug == slug, ct);
 
-        public async Task<PagedResult<Post>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, CancellationToken ct = default)
+        public async Task<PagedResult<Post>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, CancellationToken ct = default)
         {
             var query = context.Posts
                 .Include(x => x.Author)
@@ -43,6 +43,9 @@ namespace blog.Infrastructure.Repositories
                 PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
                 _ => query
             };
+
+            if (!includeDrafts)
+                query = query.Where(x => x.Status != PostStatus.Draft);
 
             query = query.ApplySorting(sortBy);
 

@@ -14,6 +14,6 @@ namespace blog.Application.Posts.Queries.GetAllPosts
         public PostSortBy SortBy { get; init; } = PostSortBy.Newest;
         public PostFilter Filter { get; init; } = PostFilter.All;
 
-        public UserLevel MinimumLevel => UserLevel.Owner;
+        public UserLevel MinimumLevel => UserLevel.Admin;
     }
 }
