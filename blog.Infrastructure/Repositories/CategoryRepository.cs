@@ -20,6 +20,12 @@ namespace blog.Infrastructure.Repositories
                 .OrderBy(x => x.Name)
                 .ToListAsync(ct);
 
+        public async Task<IEnumerable<Category>> GetAllDeletedAsync(CancellationToken ct = default)
+            => await context.Categories
+                .Where(x => x.IsDeleted)
+                .OrderByDescending(x => x.DeletedAt)
+                .ToListAsync(ct);
+
         public async Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
             => await context.Categories.AnyAsync(x => x.Name == name, ct);
 
@@ -35,6 +41,12 @@ namespace blog.Infrastructure.Repositories
         public void SoftDelete(Category category)
         {
             category.SoftDelete();
+            context.Categories.Update(category);
+        }
+
+        public void Restore(Category category)
+        {
+            category.Restore();
             context.Categories.Update(category);
         }
     }
