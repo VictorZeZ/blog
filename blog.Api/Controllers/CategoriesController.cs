@@ -2,9 +2,11 @@
 using blog.Api.DTOs.Categories;
 using blog.Application.Categories.Commands.CreateCategory;
 using blog.Application.Categories.Commands.DeleteCategory;
+using blog.Application.Categories.Commands.RestoreCategory;
 using blog.Application.Categories.Commands.UpdateCategory;
 using blog.Application.Categories.Queries.GetAllCategories;
 using blog.Application.Categories.Queries.GetCategoryBySlug;
+using blog.Application.Categories.Queries.GetDeletedCategories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,6 +66,29 @@ namespace blog.Api.Controllers
         public async Task<IActionResult> DeleteCategory(Guid categoryId, CancellationToken ct)
         {
             var command = new DeleteCategoryCommand
+            {
+                ActorId = CurrentUserId,
+                CategoryId = categoryId
+            };
+
+            var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("deleted")]
+        [Authorize]
+        public async Task<IActionResult> GetDeletedCategories(CancellationToken ct)
+        {
+            var query = new GetDeletedCategoriesQuery { ActorId = CurrentUserId };
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpPut("{categoryId:guid}/restore")]
+        [Authorize]
+        public async Task<IActionResult> RestoreCategory(Guid categoryId, CancellationToken ct)
+        {
+            var command = new RestoreCategoryCommand
             {
                 ActorId = CurrentUserId,
                 CategoryId = categoryId
