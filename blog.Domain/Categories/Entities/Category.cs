@@ -6,8 +6,8 @@ namespace blog.Domain.Categories.Entities
 {
     public class Category : SoftDeletableEntity<CategoryId>
     {
-        public string Name { get; private set; }
-        public string Slug { get; private set; }
+        public string Name { get; private set; } = null!;
+        public string Slug { get; private set; } = null!;
 
         private Category() : base(CategoryId.Empty) { }
 

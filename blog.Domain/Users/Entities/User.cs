@@ -9,10 +9,10 @@ namespace blog.Domain.Users.Entities
 {
     public class User : SoftDeletableEntity<UserId>
     {
-        public string Email { get; private set; }
-        public string FirstName { get; private set; }
-        public string LastName { get; private set; }
-        public string PasswordHash { get; private set; }
+        public string Email { get; private set; } = null!;
+        public string FirstName { get; private set; } = null!;
+        public string LastName { get; private set; } = null!;
+        public string PasswordHash { get; private set; } = null!;
         public UserLevel Level { get; private set; }
 
         public bool IsBanned { get; private set; }

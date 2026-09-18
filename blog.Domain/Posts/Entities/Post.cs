@@ -14,19 +14,19 @@ namespace blog.Domain.Posts.Entities
 {
     public class Post : Entity<PostId>
     {
-        public string Title { get; private set; }
-        public string Summary { get; private set; }
+        public string Title { get; private set; } = null!;
+        public string Summary { get; private set; } = null!;
         public string? TitleImageUrl { get; private set; }
-        public string Content { get; private set; }
-        public string Slug { get; private set; }
+        public string Content { get; private set; } = null!;
+        public string Slug { get; private set; } = null!;
         public List<string> Tags { get; private set; } = [];
         public PostStatus Status { get; private set; }
 
         public UserId AuthorId { get; private set; }
-        public User Author { get; private set; }
+        public User Author { get; private set; } = null!;
 
         public CategoryId CategoryId { get; private set; }
-        public Category Category { get; private set; }
+        public Category Category { get; private set; } = null!;
 
         public int ViewCount { get; private set; }
 

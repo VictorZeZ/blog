@@ -8,10 +8,10 @@ namespace blog.Domain.Tokens.Entities
 {
     public class RefreshToken : Entity<RefreshTokenId>
     {
-        public string TokenHash { get; private set; }
+        public string TokenHash { get; private set; } = null!;
         public DateTime ExpiresAt { get; private set; }
         public TokenStatus Status { get; private set; }
-        public string DeviceInfo { get; private set; }
+        public string DeviceInfo { get; private set; } = null!;
 
         public UserId UserId { get; private set; }
         public User User { get; private set; } = null!;

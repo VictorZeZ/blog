@@ -10,7 +10,7 @@ namespace blog.Domain.EmailVerifications.Entities
 {
     public class EmailVerification : Entity<EmailVerificationId>
     {
-        public string CodeHash { get; private set; }
+        public string CodeHash { get; private set; } = null!;
         public EmailVerificationPurpose Purpose { get; private set; }
         public string? TargetEmail { get; private set; }
         public DateTime ExpiresAt { get; private set; }
