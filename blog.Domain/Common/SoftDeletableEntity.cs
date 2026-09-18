@@ -13,5 +13,12 @@
             DeletedAt = DateTime.UtcNow;
             MarkAsUpdated();
         }
+
+        public virtual void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+            MarkAsUpdated();
+        }
     }
 }
