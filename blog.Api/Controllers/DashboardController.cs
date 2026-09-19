@@ -25,9 +25,9 @@ namespace blog.Api.Controllers
     public class DashboardController(IMediator mediator) : ApiController(mediator)
     {
         [HttpGet]
-        public async Task<IActionResult> GetDashboard([FromQuery] DashboardScope scope = DashboardScope.Platform, CancellationToken ct = default)
+        public async Task<IActionResult> GetDashboard([FromQuery] DashboardScope scope = DashboardScope.Platform, [FromQuery] DateOnly? from = null, [FromQuery] DateOnly? to = null, CancellationToken ct = default)
         {
-            var query = new GetDashboardQuery { ActorId = CurrentUserId, Scope = scope };
+            var query = new GetDashboardQuery { ActorId = CurrentUserId, Scope = scope, From = from, To = to };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);

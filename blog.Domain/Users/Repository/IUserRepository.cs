@@ -15,6 +15,7 @@ namespace blog.Domain.Users.Repository
         Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
         Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
         Task<UserStats> GetStatsAsync(int registrationsPerDayCount, CancellationToken ct = default);
+        Task<IReadOnlyList<DailyCount>> GetRegistrationsPerDayAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
         Task<UserActivityReport> GetActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
 
         // Write

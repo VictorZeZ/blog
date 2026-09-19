@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Categories.Repository;
+using blog.Domain.Common;
 using blog.Domain.Common.Reports;
 using blog.Domain.Dashboard.Enums;
 using blog.Domain.Exceptions;
@@ -14,7 +15,10 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 {
     public class GetDashboardQueryHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository) : IRequestHandler<GetDashboardQuery, GetDashboardResponse>
     {
-        private const int ChartDayCount = 30;
+        // Used only to source the all-time TotalViewCount snapshots below; the daily
+        // breakdowns these calls also compute are discarded in favor of the range-scoped
+        // status reports, which is the deliberate trade-off documented alongside this commit.
+        private const int AllTimeStatsDayCount = 30;
 
         public async Task<GetDashboardResponse> Handle(GetDashboardQuery request, CancellationToken cancellationToken)
         {
@@ -24,7 +28,10 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             actor.EnsureActive();
 
-            var myPostStats = await postRepository.GetStatsByAuthorAsync(actor.Id, ChartDayCount, cancellationToken);
+            var range = ReportDateRangeRules.Resolve(request.From, request.To);
+
+            var myPostStats = await postRepository.GetStatsByAuthorAsync(actor.Id, AllTimeStatsDayCount, cancellationToken);
+            var myStatusReport = await postRepository.GetStatusReportByAuthorAsync(actor.Id, range.From, range.To, cancellationToken);
 
             var profile = new DashboardProfileResponse
             {
@@ -38,32 +45,41 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             var myContent = new MyContentResponse
             {
-                DraftCount = myPostStats.DraftCount,
-                PendingApprovalCount = myPostStats.PendingApprovalCount,
-                PublishedCount = myPostStats.PublishedCount,
-                RejectedCount = myPostStats.RejectedCount,
-                TotalViewCount = myPostStats.TotalViewCount
+                DraftCount = myStatusReport.DraftCount,
+                PendingApprovalCount = myStatusReport.PendingApprovalCount,
+                PublishedCount = myStatusReport.PublishedCount,
+                RejectedCount = myStatusReport.RejectedCount,
+                TotalViewCount = myPostStats.TotalViewCount,
+                DailyBreakdown = myStatusReport.DailyBreakdown
             };
 
             var authorInsights = actor.IsAuthorOrHigher()
-                ? new AuthorInsightsResponse { PostsPerDay = myPostStats.PostsPerDay }
+                ? new AuthorInsightsResponse
+                {
+                    PostsPerDay = myStatusReport.DailyBreakdown
+                        .Select(d => new DailyCount(d.Date, d.DraftCount + d.PendingApprovalCount + d.PublishedCount + d.RejectedCount))
+                        .ToList()
+                }
                 : null;
 
             if (!actor.IsElevated() || request.Scope == DashboardScope.Personal)
             {
                 return new GetDashboardResponse
                 {
+                    From = range.From,
+                    To = range.To,
                     Profile = profile,
                     MyContent = myContent,
                     AuthorInsights = authorInsights
                 };
             }
 
-            var platformPostStats = await postRepository.GetStatsAsync(ChartDayCount, cancellationToken);
-            var userStats = await userRepository.GetStatsAsync(ChartDayCount, cancellationToken);
+            var platformPostStats = await postRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
+            var siteStatusReport = await postRepository.GetStatusReportAsync(range.From, range.To, cancellationToken);
+            var userStats = await userRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
+            var registrationsPerDay = await userRepository.GetRegistrationsPerDayAsync(range.From, range.To, cancellationToken);
             var activeCategoryCount = await categoryRepository.GetActiveCountAsync(cancellationToken);
 
-            var range = ReportDateRangeRules.Resolve(null, null);
             var topPosts = await postRepository.GetTopViewedAsync(range.From, range.To, TopNRules.DefaultTopN, null, cancellationToken);
             var topAuthors = await postRepository.GetTopAuthorsAsync(range.From, range.To, TopNRules.DefaultTopN, cancellationToken);
 
@@ -75,11 +91,12 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             var siteContent = new SiteContentResponse
             {
-                DraftCount = platformPostStats.DraftCount,
-                PendingApprovalCount = platformPostStats.PendingApprovalCount,
-                PublishedCount = platformPostStats.PublishedCount,
-                RejectedCount = platformPostStats.RejectedCount,
-                TotalViewCount = platformPostStats.TotalViewCount
+                DraftCount = siteStatusReport.DraftCount,
+                PendingApprovalCount = siteStatusReport.PendingApprovalCount,
+                PublishedCount = siteStatusReport.PublishedCount,
+                RejectedCount = siteStatusReport.RejectedCount,
+                TotalViewCount = platformPostStats.TotalViewCount,
+                DailyBreakdown = siteStatusReport.DailyBreakdown
             };
 
             var platformStats = new PlatformStatsResponse
@@ -88,7 +105,7 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 BannedUserCount = userStats.BannedCount,
                 TotalPostCount = platformPostStats.TotalCount,
                 TotalViewCount = platformPostStats.TotalViewCount,
-                RegistrationsPerDay = userStats.RegistrationsPerDay,
+                RegistrationsPerDay = registrationsPerDay,
                 TopPosts = topPosts.Select(p => p.ToSummaryResponse()).ToList(),
                 TopAuthors = topAuthors
             };
@@ -105,6 +122,8 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             return new GetDashboardResponse
             {
+                From = range.From,
+                To = range.To,
                 Profile = profile,
                 MyContent = myContent,
                 AuthorInsights = authorInsights,

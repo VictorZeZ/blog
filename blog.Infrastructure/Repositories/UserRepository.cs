@@ -121,6 +121,21 @@ namespace blog.Infrastructure.Repositories
             };
         }
 
+        public async Task<IReadOnlyList<DailyCount>> GetRegistrationsPerDayAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var rows = await context.Users
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(x => x.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .OrderBy(e => e.Date)
+                .ToListAsync(ct);
+
+            return rows.Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count)).ToList();
+        }
+
         public async Task<UserActivityReport> GetActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
         {
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);

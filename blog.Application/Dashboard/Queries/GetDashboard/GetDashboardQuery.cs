@@ -7,5 +7,7 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
     {
         public Guid ActorId { get; init; }
         public DashboardScope Scope { get; init; } = DashboardScope.Platform;
+        public DateOnly? From { get; init; }
+        public DateOnly? To { get; init; }
     }
 }
