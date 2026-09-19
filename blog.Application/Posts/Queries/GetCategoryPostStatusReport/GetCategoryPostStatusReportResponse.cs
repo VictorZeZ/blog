@@ -1,4 +1,6 @@
-﻿namespace blog.Application.Posts.Queries.GetCategoryPostStatusReport
+﻿using blog.Domain.Posts.Common;
+
+namespace blog.Application.Posts.Queries.GetCategoryPostStatusReport
 {
     public class GetCategoryPostStatusReportResponse
     {
@@ -10,5 +12,6 @@
         public int PublishedCount { get; init; }
         public int RejectedCount { get; init; }
         public int TotalCount { get; init; }
+        public IReadOnlyList<PostStatusDailyCount> DailyBreakdown { get; init; } = [];
     }
 }

@@ -8,6 +8,9 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
         {
             RuleFor(x => x.ActorId)
                 .NotEmpty();
+
+            RuleFor(x => x.Scope)
+                .IsInEnum();
         }
     }
 }

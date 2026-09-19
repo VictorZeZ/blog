@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Categories.Repository;
 using blog.Domain.Common.Reports;
+using blog.Domain.Dashboard.Enums;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Extensions;
 using blog.Domain.Posts.Repository;
@@ -48,7 +49,7 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 ? new AuthorInsightsResponse { PostsPerDay = myPostStats.PostsPerDay }
                 : null;
 
-            if (!actor.IsElevated())
+            if (!actor.IsElevated() || request.Scope == DashboardScope.Personal)
             {
                 return new GetDashboardResponse
                 {

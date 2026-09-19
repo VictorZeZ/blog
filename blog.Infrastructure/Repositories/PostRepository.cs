@@ -363,8 +363,9 @@ namespace blog.Infrastructure.Repositories
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-            var counts = await query
-                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+            var inRange = query.Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
+
+            var counts = await inRange
                 .GroupBy(_ => 1)
                 .Select(g => new
                 {
@@ -376,6 +377,22 @@ namespace blog.Infrastructure.Repositories
                 })
                 .FirstOrDefaultAsync(ct);
 
+            var dailyRows = await inRange
+                .GroupBy(x => new { x.CreatedAt.Date, x.Status })
+                .Select(g => new { g.Key.Date, g.Key.Status, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var dailyBreakdown = dailyRows
+                .GroupBy(r => r.Date)
+                .Select(g => new PostStatusDailyCount(
+                    DateOnly.FromDateTime(g.Key),
+                    g.Where(x => x.Status == PostStatus.Draft).Sum(x => x.Count),
+                    g.Where(x => x.Status == PostStatus.PendingApproval).Sum(x => x.Count),
+                    g.Where(x => x.Status == PostStatus.Published).Sum(x => x.Count),
+                    g.Where(x => x.Status == PostStatus.Rejected).Sum(x => x.Count)))
+                .OrderBy(x => x.Date)
+                .ToList();
+
             return new PostStatusReport
             {
                 From = from,
@@ -384,7 +401,8 @@ namespace blog.Infrastructure.Repositories
                 DraftCount = counts?.Draft ?? 0,
                 PendingApprovalCount = counts?.PendingApproval ?? 0,
                 PublishedCount = counts?.Published ?? 0,
-                RejectedCount = counts?.Rejected ?? 0
+                RejectedCount = counts?.Rejected ?? 0,
+                DailyBreakdown = dailyBreakdown
             };
         }
     }

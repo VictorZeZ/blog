@@ -13,6 +13,7 @@ using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUserActivityReport;
 using blog.Domain.Common;
 using blog.Domain.Common.Reports;
+using blog.Domain.Dashboard.Enums;
 using blog.Domain.Posts.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -24,9 +25,9 @@ namespace blog.Api.Controllers
     public class DashboardController(IMediator mediator) : ApiController(mediator)
     {
         [HttpGet]
-        public async Task<IActionResult> GetDashboard(CancellationToken ct)
+        public async Task<IActionResult> GetDashboard([FromQuery] DashboardScope scope = DashboardScope.Platform, CancellationToken ct = default)
         {
-            var query = new GetDashboardQuery { ActorId = CurrentUserId };
+            var query = new GetDashboardQuery { ActorId = CurrentUserId, Scope = scope };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);

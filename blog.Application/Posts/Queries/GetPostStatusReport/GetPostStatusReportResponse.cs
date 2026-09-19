@@ -1,4 +1,6 @@
-﻿namespace blog.Application.Posts.Queries.GetPostStatusReport
+﻿using blog.Domain.Posts.Common;
+
+namespace blog.Application.Posts.Queries.GetPostStatusReport
 {
     public class GetPostStatusReportResponse
     {
@@ -9,5 +11,6 @@
         public int PublishedCount { get; init; }
         public int RejectedCount { get; init; }
         public int TotalCount { get; init; }
+        public IReadOnlyList<PostStatusDailyCount> DailyBreakdown { get; init; } = [];
     }
 }
