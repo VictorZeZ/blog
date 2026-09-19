@@ -73,6 +73,15 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 ActiveCategoryCount = activeCategoryCount
             };
 
+            var siteContent = new SiteContentResponse
+            {
+                DraftCount = platformPostStats.DraftCount,
+                PendingApprovalCount = platformPostStats.PendingApprovalCount,
+                PublishedCount = platformPostStats.PublishedCount,
+                RejectedCount = platformPostStats.RejectedCount,
+                TotalViewCount = platformPostStats.TotalViewCount
+            };
+
             var platformStats = new PlatformStatsResponse
             {
                 TotalUserCount = userStats.TotalCount,
@@ -100,6 +109,7 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 MyContent = myContent,
                 AuthorInsights = authorInsights,
                 ModerationQueue = moderationQueue,
+                SiteContent = siteContent,
                 PlatformStats = platformStats,
                 OwnerOverview = ownerOverview
             };

@@ -20,7 +20,8 @@ namespace blog.Application.Posts.Queries.GetPostStatusReport
                 PendingApprovalCount = report.PendingApprovalCount,
                 PublishedCount = report.PublishedCount,
                 RejectedCount = report.RejectedCount,
-                TotalCount = report.TotalCount
+                TotalCount = report.TotalCount,
+                DailyBreakdown = report.DailyBreakdown
             };
         }
     }

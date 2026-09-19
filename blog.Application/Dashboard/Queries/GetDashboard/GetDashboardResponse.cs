@@ -6,6 +6,7 @@
         public MyContentResponse MyContent { get; init; } = null!;
         public AuthorInsightsResponse? AuthorInsights { get; init; }
         public ModerationQueueResponse? ModerationQueue { get; init; }
+        public SiteContentResponse? SiteContent { get; init; }
         public PlatformStatsResponse? PlatformStats { get; init; }
         public OwnerOverviewResponse? OwnerOverview { get; init; }
     }
