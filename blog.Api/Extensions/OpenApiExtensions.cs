@@ -4,7 +4,11 @@
     {
         public static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services)
         {
-            services.AddOpenApi();
+            services.AddOpenApi(options =>
+            {
+                options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+                options.AddOperationTransformer<AuthorizationOperationTransformer>();
+            });
 
             return services;
         }

@@ -13,7 +13,8 @@ namespace blog.Api.Extensions
                 options
                     .WithTitle("blog API")
                     .WithTheme(ScalarTheme.DeepSpace)
-                    .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch);
+                    .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch)
+                    .AddPreferredSecuritySchemes("Bearer");
             });
 
             return app;
