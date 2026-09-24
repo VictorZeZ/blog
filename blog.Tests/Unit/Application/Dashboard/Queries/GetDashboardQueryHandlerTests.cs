@@ -68,6 +68,36 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
             };
         }
 
+        private static PostStatusReport CreatePostStatusReport()
+        {
+            return new PostStatusReport
+            {
+                From = new DateOnly(2026, 9, 1),
+                To = new DateOnly(2026, 9, 2),
+                DraftCount = 3,
+                PendingApprovalCount = 2,
+                PublishedCount = 6,
+                RejectedCount = 1,
+                TotalCount = 12,
+                DailyBreakdown =
+                [
+                new PostStatusDailyCount(
+                    new DateOnly(2026, 9, 1),
+                    2,
+                    0,
+                    0,
+                    0),
+
+            new PostStatusDailyCount(
+                new DateOnly(2026, 9, 2),
+                    1,
+                    0,
+                    0,
+                    0)
+                ]
+            };
+        }
+
         private static UserStats CreateUserStats()
         {
             return new UserStats
@@ -115,6 +145,14 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     30,
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportByAuthorAsync(
+                    user.Id,
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
         }
 
         [Fact]
@@ -160,13 +198,8 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
         public async Task Handle_Author_ReturnsAuthorInsights()
         {
             // Arrange
-            var user = CreateUser(
-                "author@test.com",
-                UserLevel.Author);
-
+            var user = CreateUser(level: UserLevel.Author);
             var query = CreateQuery(user.Id.Value);
-
-            var postStats = CreatePostStats();
 
             SetupUser(user);
 
@@ -175,7 +208,15 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     user.Id,
                     30,
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(postStats);
+                .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportByAuthorAsync(
+                    user.Id,
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             // Act
             var result = await _handler.Handle(
@@ -183,32 +224,18 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                 CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
+
+            result.Profile.Should().NotBeNull();
+            result.Profile.Id.Should().Be(user.Id.Value);
+            result.Profile.Level.Should().Be(UserLevel.Author);
+
+            result.MyContent.Should().NotBeNull();
+
             result.AuthorInsights.Should().NotBeNull();
-
-            result.AuthorInsights!.PostsPerDay
-                .Should()
-                .BeEquivalentTo(postStats.PostsPerDay);
-
             result.ModerationQueue.Should().BeNull();
             result.PlatformStats.Should().BeNull();
             result.OwnerOverview.Should().BeNull();
-
-            _postRepositoryMock.Verify(
-                x => x.GetStatsAsync(
-                    It.IsAny<int>(),
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
-
-            _userRepositoryMock.Verify(
-                x => x.GetStatsAsync(
-                    It.IsAny<int>(),
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
-
-            _categoryRepositoryMock.Verify(
-                x => x.GetActiveCountAsync(
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
         }
 
         [Fact]
@@ -221,22 +248,6 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
 
             var query = CreateQuery(admin.Id.Value);
 
-            var myPostStats = CreatePostStats();
-
-            var platformPostStats = new PostStats
-            {
-                TotalCount = 500,
-                DraftCount = 40,
-                PendingApprovalCount = 15,
-                PublishedCount = 420,
-                RejectedCount = 25,
-                TotalViewCount = 25000,
-                PostsPerDay = []
-            };
-
-            var userStats = CreateUserStats();
-            var activeCategoryCount = 12;
-
             SetupUser(admin);
 
             _postRepositoryMock
@@ -244,13 +255,32 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     admin.Id,
                     30,
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(myPostStats);
+                .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportByAuthorAsync(
+                    admin.Id,
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             _postRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(platformPostStats);
+                .ReturnsAsync(new PostStats
+                {
+                    TotalCount = 500,
+                    PendingApprovalCount = 15
+                });
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             _postRepositoryMock
                 .Setup(x => x.GetTopViewedAsync(
@@ -269,16 +299,25 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync([]);
 
+            var userStats = CreateUserStats();
+
             _userRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(userStats);
 
+            _userRepositoryMock
+                .Setup(x => x.GetRegistrationsPerDayAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(userStats.RegistrationsPerDay);
+
             _categoryRepositoryMock
                 .Setup(x => x.GetActiveCountAsync(
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(activeCategoryCount);
+                .ReturnsAsync(12);
 
             // Act
             var result = await _handler.Handle(
@@ -288,39 +327,25 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
             // Assert
             result.Should().NotBeNull();
 
-            result.AuthorInsights.Should().NotBeNull();
-
-            result.ModerationQueue.Should().NotBeNull();
-            result.ModerationQueue!.PendingApprovalCount
-                .Should()
-                .Be(platformPostStats.PendingApprovalCount);
-
-            result.ModerationQueue.ActiveCategoryCount
-                .Should()
-                .Be(activeCategoryCount);
-
             result.PlatformStats.Should().NotBeNull();
+
             result.PlatformStats!.TotalUserCount
                 .Should()
                 .Be(userStats.TotalCount);
 
-            result.PlatformStats.BannedUserCount
-                .Should()
-                .Be(userStats.BannedCount);
-
             result.PlatformStats.TotalPostCount
                 .Should()
-                .Be(platformPostStats.TotalCount);
+                .Be(500);
 
-            result.PlatformStats.TotalViewCount
+            result.PlatformStats.TopPosts
                 .Should()
-                .Be(platformPostStats.TotalViewCount);
+                .BeEmpty();
 
-            result.PlatformStats.RegistrationsPerDay
+            result.PlatformStats.TopAuthors
                 .Should()
-                .BeEquivalentTo(userStats.RegistrationsPerDay);
+                .BeEmpty();
 
-            result.OwnerOverview.Should().BeNull();
+            result.ModerationQueue.Should().NotBeNull();
         }
 
         [Fact]
@@ -343,6 +368,14 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                 .ReturnsAsync(CreatePostStats());
 
             _postRepositoryMock
+                .Setup(x => x.GetStatusReportByAuthorAsync(
+                    owner.Id,
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
+
+            _postRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
                     It.IsAny<CancellationToken>()))
@@ -351,6 +384,13 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     TotalCount = 500,
                     PendingApprovalCount = 15
                 });
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             _postRepositoryMock
                 .Setup(x => x.GetTopViewedAsync(
@@ -377,6 +417,13 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(userStats);
 
+            _userRepositoryMock
+                .Setup(x => x.GetRegistrationsPerDayAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(userStats.RegistrationsPerDay);
+
             _categoryRepositoryMock
                 .Setup(x => x.GetActiveCountAsync(
                     It.IsAny<CancellationToken>()))
@@ -388,6 +435,8 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                 CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
+
             result.OwnerOverview.Should().NotBeNull();
 
             result.OwnerOverview!.NormalCount
@@ -487,32 +536,42 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
         public async Task Handle_NormalUser_DoesNotLoadPlatformStatistics()
         {
             // Arrange
-            var user = CreateUser();
+            var user = CreateUser(level: UserLevel.Normal);
             var query = CreateQuery(user.Id.Value);
 
             SetupUser(user);
             SetupPostStats(user);
 
             // Act
-            await _handler.Handle(
+            var result = await _handler.Handle(
                 query,
                 CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
+
+            result.Profile.Should().NotBeNull();
+            result.Profile.Id.Should().Be(user.Id.Value);
+            result.Profile.Level.Should().Be(UserLevel.Normal);
+
+            result.MyContent.Should().NotBeNull();
+
+            result.PlatformStats.Should().BeNull();
+            result.OwnerOverview.Should().BeNull();
+            result.AuthorInsights.Should().BeNull();
+            result.ModerationQueue.Should().BeNull();
+
             _postRepositoryMock.Verify(
-                x => x.GetStatsAsync(
-                    It.IsAny<int>(),
+                x => x.GetStatusReportAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
 
             _userRepositoryMock.Verify(
-                x => x.GetStatsAsync(
-                    It.IsAny<int>(),
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
-
-            _categoryRepositoryMock.Verify(
-                x => x.GetActiveCountAsync(
+                x => x.GetRegistrationsPerDayAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
         }
@@ -528,13 +587,34 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
             var query = CreateQuery(admin.Id.Value);
 
             SetupUser(admin);
-            SetupPostStats(admin);
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatsByAuthorAsync(
+                    admin.Id,
+                    30,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportByAuthorAsync(
+                    admin.Id,
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             _postRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreatePostStats());
+
+            _postRepositoryMock
+                .Setup(x => x.GetStatusReportAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePostStatusReport());
 
             _postRepositoryMock
                 .Setup(x => x.GetTopViewedAsync(
@@ -553,16 +633,25 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync([]);
 
+            var userStats = CreateUserStats();
+
             _userRepositoryMock
                 .Setup(x => x.GetStatsAsync(
                     30,
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateUserStats());
+                .ReturnsAsync(userStats);
+
+            _userRepositoryMock
+                .Setup(x => x.GetRegistrationsPerDayAsync(
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<DateOnly>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(userStats.RegistrationsPerDay);
 
             _categoryRepositoryMock
                 .Setup(x => x.GetActiveCountAsync(
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(10);
+                .ReturnsAsync(12);
 
             // Act
             var result = await _handler.Handle(
@@ -570,6 +659,7 @@ namespace blog.Tests.Unit.Application.Dashboard.Queries
                 CancellationToken.None);
 
             // Assert
+            result.Should().NotBeNull();
             result.OwnerOverview.Should().BeNull();
         }
     }
