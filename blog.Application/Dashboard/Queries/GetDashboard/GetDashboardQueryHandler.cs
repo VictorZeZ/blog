@@ -45,10 +45,10 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             var myContent = new MyContentResponse
             {
-                DraftCount = myStatusReport.DraftCount,
-                PendingApprovalCount = myStatusReport.PendingApprovalCount,
-                PublishedCount = myStatusReport.PublishedCount,
-                RejectedCount = myStatusReport.RejectedCount,
+                DraftCount = myPostStats.DraftCount,
+                PendingApprovalCount = myPostStats.PendingApprovalCount,
+                PublishedCount = myPostStats.PublishedCount,
+                RejectedCount = myPostStats.RejectedCount,
                 TotalViewCount = myPostStats.TotalViewCount,
                 DailyBreakdown = myStatusReport.DailyBreakdown
             };
@@ -91,10 +91,10 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             var siteContent = new SiteContentResponse
             {
-                DraftCount = siteStatusReport.DraftCount,
-                PendingApprovalCount = siteStatusReport.PendingApprovalCount,
-                PublishedCount = siteStatusReport.PublishedCount,
-                RejectedCount = siteStatusReport.RejectedCount,
+                DraftCount = platformPostStats.DraftCount,
+                PendingApprovalCount = platformPostStats.PendingApprovalCount,
+                PublishedCount = platformPostStats.PublishedCount,
+                RejectedCount = platformPostStats.RejectedCount,
                 TotalViewCount = platformPostStats.TotalViewCount,
                 DailyBreakdown = siteStatusReport.DailyBreakdown
             };

@@ -317,20 +317,22 @@ namespace blog.Infrastructure.Repositories
             return result;
         }
 
+        private sealed record PostStatusCounts(int Total, int Draft, int PendingApproval, int Published, int Rejected);
+
+        private static IQueryable<PostStatusCounts> ProjectStatusCounts(IQueryable<Post> query)
+            => query
+                .GroupBy(_ => 1)
+                .Select(g => new PostStatusCounts(
+                    g.Count(),
+                    g.Count(x => x.Status == PostStatus.Draft),
+                    g.Count(x => x.Status == PostStatus.PendingApproval),
+                    g.Count(x => x.Status == PostStatus.Published),
+                    g.Count(x => x.Status == PostStatus.Rejected)));
+
         private static async Task<PostStats> BuildStatsAsync(IQueryable<Post> query, int postsPerDayCount, CancellationToken ct)
         {
-            var counts = await query
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    Total = g.Count(),
-                    Draft = g.Count(x => x.Status == PostStatus.Draft),
-                    PendingApproval = g.Count(x => x.Status == PostStatus.PendingApproval),
-                    Published = g.Count(x => x.Status == PostStatus.Published),
-                    Rejected = g.Count(x => x.Status == PostStatus.Rejected),
-                    TotalViews = g.Sum(x => x.ViewCount)
-                })
-                .FirstOrDefaultAsync(ct);
+            var counts = await ProjectStatusCounts(query).FirstOrDefaultAsync(ct) ?? new PostStatusCounts(0, 0, 0, 0, 0);
+            var totalViews = await query.Select(x => (int?)x.ViewCount).SumAsync(ct) ?? 0;
 
             var since = DateTime.UtcNow.Date.AddDays(-(postsPerDayCount - 1));
 
@@ -345,15 +347,14 @@ namespace blog.Infrastructure.Repositories
                 .Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count))
                 .ToList();
 
-
             return new PostStats
             {
-                TotalCount = counts?.Total ?? 0,
-                DraftCount = counts?.Draft ?? 0,
-                PendingApprovalCount = counts?.PendingApproval ?? 0,
-                PublishedCount = counts?.Published ?? 0,
-                RejectedCount = counts?.Rejected ?? 0,
-                TotalViewCount = counts?.TotalViews ?? 0,
+                TotalCount = counts.Total,
+                DraftCount = counts.Draft,
+                PendingApprovalCount = counts.PendingApproval,
+                PublishedCount = counts.Published,
+                RejectedCount = counts.Rejected,
+                TotalViewCount = totalViews,
                 PostsPerDay = postsPerDay
             };
         }
@@ -365,17 +366,7 @@ namespace blog.Infrastructure.Repositories
 
             var inRange = query.Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
 
-            var counts = await inRange
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    Total = g.Count(),
-                    Draft = g.Count(x => x.Status == PostStatus.Draft),
-                    PendingApproval = g.Count(x => x.Status == PostStatus.PendingApproval),
-                    Published = g.Count(x => x.Status == PostStatus.Published),
-                    Rejected = g.Count(x => x.Status == PostStatus.Rejected)
-                })
-                .FirstOrDefaultAsync(ct);
+            var counts = await ProjectStatusCounts(inRange).FirstOrDefaultAsync(ct) ?? new PostStatusCounts(0, 0, 0, 0, 0);
 
             var dailyRows = await inRange
                 .GroupBy(x => new { x.CreatedAt.Date, x.Status })
@@ -397,11 +388,11 @@ namespace blog.Infrastructure.Repositories
             {
                 From = from,
                 To = to,
-                TotalCount = counts?.Total ?? 0,
-                DraftCount = counts?.Draft ?? 0,
-                PendingApprovalCount = counts?.PendingApproval ?? 0,
-                PublishedCount = counts?.Published ?? 0,
-                RejectedCount = counts?.Rejected ?? 0,
+                TotalCount = counts.Total,
+                DraftCount = counts.Draft,
+                PendingApprovalCount = counts.PendingApproval,
+                PublishedCount = counts.Published,
+                RejectedCount = counts.Rejected,
                 DailyBreakdown = dailyBreakdown
             };
         }
