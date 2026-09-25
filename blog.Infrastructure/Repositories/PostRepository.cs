@@ -373,16 +373,18 @@ namespace blog.Infrastructure.Repositories
                 .Select(g => new { g.Key.Date, g.Key.Status, Count = g.Count() })
                 .ToListAsync(ct);
 
-            var dailyBreakdown = dailyRows
-                .GroupBy(r => r.Date)
-                .Select(g => new PostStatusDailyCount(
-                    DateOnly.FromDateTime(g.Key),
+            var byDate = dailyRows
+                .GroupBy(r => DateOnly.FromDateTime(r.Date))
+                .ToDictionary(g => g.Key, g => new PostStatusDailyCount(
+                    g.Key,
                     g.Where(x => x.Status == PostStatus.Draft).Sum(x => x.Count),
                     g.Where(x => x.Status == PostStatus.PendingApproval).Sum(x => x.Count),
                     g.Where(x => x.Status == PostStatus.Published).Sum(x => x.Count),
-                    g.Where(x => x.Status == PostStatus.Rejected).Sum(x => x.Count)))
-                .OrderBy(x => x.Date)
-                .ToList();
+                    g.Where(x => x.Status == PostStatus.Rejected).Sum(x => x.Count)));
+
+            var dailyBreakdown = new List<PostStatusDailyCount>();
+            for (var date = from; date <= to; date = date.AddDays(1))
+                dailyBreakdown.Add(byDate.TryGetValue(date, out var day) ? day : new PostStatusDailyCount(date, 0, 0, 0, 0));
 
             return new PostStatusReport
             {

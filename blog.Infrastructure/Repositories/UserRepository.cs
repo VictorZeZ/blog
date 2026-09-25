@@ -130,10 +130,15 @@ namespace blog.Infrastructure.Repositories
                 .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
                 .GroupBy(x => x.CreatedAt.Date)
                 .Select(g => new { Date = g.Key, Count = g.Count() })
-                .OrderBy(e => e.Date)
                 .ToListAsync(ct);
 
-            return rows.Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count)).ToList();
+            var byDate = rows.ToDictionary(r => DateOnly.FromDateTime(r.Date), r => r.Count);
+
+            var registrationsPerDay = new List<DailyCount>();
+            for (var date = from; date <= to; date = date.AddDays(1))
+                registrationsPerDay.Add(new DailyCount(date, byDate.GetValueOrDefault(date)));
+
+            return registrationsPerDay;
         }
 
         public async Task<UserActivityReport> GetActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
