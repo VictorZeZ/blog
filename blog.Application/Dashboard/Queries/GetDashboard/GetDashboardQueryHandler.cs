@@ -15,9 +15,6 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 {
     public class GetDashboardQueryHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository) : IRequestHandler<GetDashboardQuery, GetDashboardResponse>
     {
-        // Used only to source the all-time TotalViewCount snapshots below; the daily
-        // breakdowns these calls also compute are discarded in favor of the range-scoped
-        // status reports, which is the deliberate trade-off documented alongside this commit.
         private const int AllTimeStatsDayCount = 30;
 
         public async Task<GetDashboardResponse> Handle(GetDashboardQuery request, CancellationToken cancellationToken)
@@ -30,9 +27,6 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
 
             var range = ReportDateRangeRules.Resolve(request.From, request.To);
 
-            var myPostStats = await postRepository.GetStatsByAuthorAsync(actor.Id, AllTimeStatsDayCount, cancellationToken);
-            var myStatusReport = await postRepository.GetStatusReportByAuthorAsync(actor.Id, range.From, range.To, cancellationToken);
-
             var profile = new DashboardProfileResponse
             {
                 Id = actor.Id.Value,
@@ -43,82 +37,91 @@ namespace blog.Application.Dashboard.Queries.GetDashboard
                 CreatedAt = actor.CreatedAt
             };
 
-            var myContent = new MyContentResponse
-            {
-                DraftCount = myPostStats.DraftCount,
-                PendingApprovalCount = myPostStats.PendingApprovalCount,
-                PublishedCount = myPostStats.PublishedCount,
-                RejectedCount = myPostStats.RejectedCount,
-                TotalViewCount = myPostStats.TotalViewCount,
-                DailyBreakdown = myStatusReport.DailyBreakdown
-            };
+            // A non-elevated actor can never reach platform data, regardless of what they request.
+            var includePersonal = !actor.IsElevated() || request.Scope is DashboardScope.Personal or DashboardScope.All;
+            var includePlatform = actor.IsElevated() && request.Scope is DashboardScope.Platform or DashboardScope.All;
 
-            var authorInsights = actor.IsAuthorOrHigher()
-                ? new AuthorInsightsResponse
-                {
-                    PostsPerDay = myStatusReport.DailyBreakdown
-                        .Select(d => new DailyCount(d.Date, d.DraftCount + d.PendingApprovalCount + d.PublishedCount + d.RejectedCount))
-                        .ToList()
-                }
-                : null;
+            MyContentResponse? myContent = null;
+            AuthorInsightsResponse? authorInsights = null;
 
-            if (!actor.IsElevated() || request.Scope == DashboardScope.Personal)
+            if (includePersonal)
             {
-                return new GetDashboardResponse
+                var myPostStats = await postRepository.GetStatsByAuthorAsync(actor.Id, AllTimeStatsDayCount, cancellationToken);
+                var myStatusReport = await postRepository.GetStatusReportByAuthorAsync(actor.Id, range.From, range.To, cancellationToken);
+
+                myContent = new MyContentResponse
                 {
-                    From = range.From,
-                    To = range.To,
-                    Profile = profile,
-                    MyContent = myContent,
-                    AuthorInsights = authorInsights
+                    DraftCount = myPostStats.DraftCount,
+                    PendingApprovalCount = myPostStats.PendingApprovalCount,
+                    PublishedCount = myPostStats.PublishedCount,
+                    RejectedCount = myPostStats.RejectedCount,
+                    TotalViewCount = myPostStats.TotalViewCount,
+                    DailyBreakdown = myStatusReport.DailyBreakdown
                 };
+
+                authorInsights = actor.IsAuthorOrHigher()
+                    ? new AuthorInsightsResponse
+                    {
+                        PostsPerDay = myStatusReport.DailyBreakdown
+                            .Select(d => new DailyCount(d.Date, d.DraftCount + d.PendingApprovalCount + d.PublishedCount + d.RejectedCount))
+                            .ToList()
+                    }
+                    : null;
             }
 
-            var platformPostStats = await postRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
-            var siteStatusReport = await postRepository.GetStatusReportAsync(range.From, range.To, cancellationToken);
-            var userStats = await userRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
-            var registrationsPerDay = await userRepository.GetRegistrationsPerDayAsync(range.From, range.To, cancellationToken);
-            var activeCategoryCount = await categoryRepository.GetActiveCountAsync(cancellationToken);
+            ModerationQueueResponse? moderationQueue = null;
+            SiteContentResponse? siteContent = null;
+            PlatformStatsResponse? platformStats = null;
+            OwnerOverviewResponse? ownerOverview = null;
 
-            var topPosts = await postRepository.GetTopViewedAsync(range.From, range.To, TopNRules.DefaultTopN, null, cancellationToken);
-            var topAuthors = await postRepository.GetTopAuthorsAsync(range.From, range.To, TopNRules.DefaultTopN, cancellationToken);
-
-            var moderationQueue = new ModerationQueueResponse
+            if (includePlatform)
             {
-                PendingApprovalCount = platformPostStats.PendingApprovalCount,
-                ActiveCategoryCount = activeCategoryCount
-            };
+                var platformPostStats = await postRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
+                var siteStatusReport = await postRepository.GetStatusReportAsync(range.From, range.To, cancellationToken);
+                var userStats = await userRepository.GetStatsAsync(AllTimeStatsDayCount, cancellationToken);
+                var registrationsPerDay = await userRepository.GetRegistrationsPerDayAsync(range.From, range.To, cancellationToken);
+                var activeCategoryCount = await categoryRepository.GetActiveCountAsync(cancellationToken);
 
-            var siteContent = new SiteContentResponse
-            {
-                DraftCount = platformPostStats.DraftCount,
-                PendingApprovalCount = platformPostStats.PendingApprovalCount,
-                PublishedCount = platformPostStats.PublishedCount,
-                RejectedCount = platformPostStats.RejectedCount,
-                TotalViewCount = platformPostStats.TotalViewCount,
-                DailyBreakdown = siteStatusReport.DailyBreakdown
-            };
+                var topPosts = await postRepository.GetTopViewedAsync(range.From, range.To, TopNRules.DefaultTopN, null, cancellationToken);
+                var topAuthors = await postRepository.GetTopAuthorsAsync(range.From, range.To, TopNRules.DefaultTopN, cancellationToken);
 
-            var platformStats = new PlatformStatsResponse
-            {
-                TotalUserCount = userStats.TotalCount,
-                BannedUserCount = userStats.BannedCount,
-                TotalPostCount = platformPostStats.TotalCount,
-                TotalViewCount = platformPostStats.TotalViewCount,
-                RegistrationsPerDay = registrationsPerDay,
-                TopPosts = topPosts.Select(p => p.ToSummaryResponse()).ToList(),
-                TopAuthors = topAuthors
-            };
-
-            var ownerOverview = actor.Level == UserLevel.Owner
-                ? new OwnerOverviewResponse
+                moderationQueue = new ModerationQueueResponse
                 {
-                    NormalCount = userStats.NormalCount,
-                    AuthorCount = userStats.AuthorCount,
-                    AdminCount = userStats.AdminCount,
-                    OwnerCount = userStats.OwnerCount
-                }
-                : null;
+                    PendingApprovalCount = platformPostStats.PendingApprovalCount,
+                    ActiveCategoryCount = activeCategoryCount
+                };
+
+                siteContent = new SiteContentResponse
+                {
+                    DraftCount = platformPostStats.DraftCount,
+                    PendingApprovalCount = platformPostStats.PendingApprovalCount,
+                    PublishedCount = platformPostStats.PublishedCount,
+                    RejectedCount = platformPostStats.RejectedCount,
+                    TotalViewCount = platformPostStats.TotalViewCount,
+                    DailyBreakdown = siteStatusReport.DailyBreakdown
+                };
+
+                platformStats = new PlatformStatsResponse
+                {
+                    TotalUserCount = userStats.TotalCount,
+                    BannedUserCount = userStats.BannedCount,
+                    TotalPostCount = platformPostStats.TotalCount,
+                    TotalViewCount = platformPostStats.TotalViewCount,
+                    RegistrationsPerDay = registrationsPerDay,
+                    TopPosts = topPosts.Select(p => p.ToSummaryResponse()).ToList(),
+                    TopAuthors = topAuthors
+                };
+
+                ownerOverview = actor.Level == UserLevel.Owner
+                    ? new OwnerOverviewResponse
+                    {
+                        NormalCount = userStats.NormalCount,
+                        AuthorCount = userStats.AuthorCount,
+                        AdminCount = userStats.AdminCount,
+                        OwnerCount = userStats.OwnerCount
+                    }
+                    : null;
+            }
 
             return new GetDashboardResponse
             {

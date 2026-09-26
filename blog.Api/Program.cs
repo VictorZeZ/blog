@@ -1,6 +1,7 @@
 using blog.Api.Extensions;
 using blog.Application;
 using blog.Infrastructure;
+using System.Text.Json.Serialization;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -14,7 +15,12 @@ builder.Services.AddJwtAuthentication();
 builder.Services.AddApiCors(builder.Configuration);
 builder.Services.AddApiRateLimiting();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 builder.Services.AddOpenApiDocumentation();
 
 var app = builder.Build();
