@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Common.Enum;
 using blog.Domain.Common.Helpers;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Users.Common;
@@ -181,6 +182,50 @@ namespace blog.Infrastructure.Repositories
                 NewAdminCount = registrations?.Admin ?? 0,
                 NewOwnerCount = registrations?.Owner ?? 0
             };
+        }
+
+        public async Task<int> CountAsync(UserFilter levelFilter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default)
+        {
+            var query = context.Users.AsQueryable();
+
+            query = levelFilter switch
+            {
+                UserFilter.Normal => query.Where(x => x.Level == UserLevel.Normal),
+                UserFilter.Author => query.Where(x => x.Level == UserLevel.Author),
+                UserFilter.Admin => query.Where(x => x.Level == UserLevel.Admin),
+                UserFilter.Owner => query.Where(x => x.Level == UserLevel.Owner),
+                _ => query
+            };
+
+            query = banned switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsBanned),
+                TriStateFilter.No => query.Where(x => !x.IsBanned),
+                _ => query
+            };
+
+            query = deleted switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsDeleted),
+                TriStateFilter.No => query.Where(x => !x.IsDeleted),
+                _ => query
+            };
+
+            query = emailConfirmed switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsEmailConfirmed),
+                TriStateFilter.No => query.Where(x => !x.IsEmailConfirmed),
+                _ => query
+            };
+
+            query = twoFactorEnabled switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.TwoFactorEnabled),
+                TriStateFilter.No => query.Where(x => !x.TwoFactorEnabled),
+                _ => query
+            };
+
+            return await query.CountAsync(ct);
         }
 
         public async Task AddAsync(User user, CancellationToken ct = default)

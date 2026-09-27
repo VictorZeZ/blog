@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Categories.Entities;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
+using blog.Domain.Common.Enum;
 using blog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,20 @@ namespace blog.Infrastructure.Repositories
 
         public async Task<int> GetActiveCountAsync(CancellationToken ct = default)
             => await context.Categories.CountAsync(x => !x.IsDeleted, ct);
+
+        public async Task<int> CountAsync(TriStateFilter deleted, CancellationToken ct = default)
+        {
+            var query = context.Categories.AsQueryable();
+
+            query = deleted switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsDeleted),
+                TriStateFilter.No => query.Where(x => !x.IsDeleted),
+                _ => query
+            };
+
+            return await query.CountAsync(ct);
+        }
 
         public async Task AddAsync(Category category, CancellationToken ct = default)
             => await context.Categories.AddAsync(category, ct);

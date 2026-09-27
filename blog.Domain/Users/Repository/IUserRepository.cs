@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Common;
+using blog.Domain.Common.Enum;
 using blog.Domain.Users.Common;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
@@ -13,8 +14,9 @@ namespace blog.Domain.Users.Repository
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
         Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default);
         Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
-        Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
         Task<UserStats> GetStatsAsync(int registrationsPerDayCount, CancellationToken ct = default);
+        Task<int> CountAsync(UserFilter levelFilter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default);
+        Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
         Task<IReadOnlyList<DailyCount>> GetRegistrationsPerDayAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
         Task<UserActivityReport> GetActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
 

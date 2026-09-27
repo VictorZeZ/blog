@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Categories.Entities;
 using blog.Domain.Categories.Types;
+using blog.Domain.Common.Enum;
 
 namespace blog.Domain.Categories.Repository
 {
@@ -12,6 +13,7 @@ namespace blog.Domain.Categories.Repository
         Task<IEnumerable<Category>> GetAllDeletedAsync(CancellationToken ct = default);
         Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
         Task<int> GetActiveCountAsync(CancellationToken ct = default);
+        Task<int> CountAsync(TriStateFilter deleted, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Category category, CancellationToken ct = default);

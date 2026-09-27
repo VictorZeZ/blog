@@ -266,6 +266,25 @@ namespace blog.Infrastructure.Repositories
         public async Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default)
             => await context.Posts.CountAsync(x => x.AuthorId == authorId && x.Status == PostStatus.Draft, ct);
 
+        public async Task<int> CountAsync(PostFilter filter, UserId? authorId, CancellationToken ct = default)
+        {
+            var query = context.Posts.AsQueryable();
+
+            query = filter switch
+            {
+                PostFilter.Draft => query.Where(x => x.Status == PostStatus.Draft),
+                PostFilter.PendingApproval => query.Where(x => x.Status == PostStatus.PendingApproval),
+                PostFilter.Published => query.Where(x => x.Status == PostStatus.Published),
+                PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
+                _ => query
+            };
+
+            if (authorId is not null)
+                query = query.Where(x => x.AuthorId == authorId);
+
+            return await query.CountAsync(ct);
+        }
+
         public async Task AddAsync(Post post, CancellationToken ct = default)
             => await context.Posts.AddAsync(post, ct);
 
