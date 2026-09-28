@@ -4,7 +4,7 @@ using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
 using blog.Application.Dashboard.Queries.GetDashboardOverview;
 using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
 using blog.Application.Posts.Queries.GetMyPostStatusReport;
-using blog.Application.Posts.Queries.GetPostsReport;
+using blog.Application.Posts.Queries.GetPostsDetail;
 using blog.Application.Posts.Queries.GetPostStatusReport;
 using blog.Application.Posts.Queries.GetTopPosts;
 using blog.Application.Posts.Queries.GetUserPostStatusReport;
@@ -14,7 +14,6 @@ using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUserActivityReport;
 using blog.Domain.Common;
 using blog.Domain.Common.Reports;
-using blog.Domain.Posts.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -137,19 +136,19 @@ namespace blog.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("posts/report")]
-        public async Task<IActionResult> GetPostsReport([FromQuery] PagedRequest paging, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] PostFilter filter = PostFilter.All, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, [FromQuery] Guid? categoryId = null, [FromQuery] Guid? authorId = null, CancellationToken ct = default)
+        [HttpGet("posts")]
+        public async Task<IActionResult> GetPostsDetail([FromQuery] PostsDetailRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
         {
-            var query = new GetPostsReportQuery
+            var query = new GetPostsDetailQuery
             {
                 ActorId = CurrentUserId,
                 Paging = paging,
-                From = from,
-                To = to,
-                Filter = filter,
-                SortBy = sortBy,
-                CategoryId = categoryId,
-                AuthorId = authorId
+                From = request.From,
+                To = request.To,
+                Filter = request.Filter,
+                SortBy = request.SortBy,
+                CategoryId = request.CategoryId,
+                AuthorId = request.AuthorId
             };
 
             var result = await Mediator.Send(query, ct);

@@ -1,13 +1,11 @@
 ﻿using blog.Domain.Common;
-using blog.Domain.Common.Interfaces;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Enums;
-using blog.Domain.Users.Enums;
 using MediatR;
 
-namespace blog.Application.Posts.Queries.GetPostsReport
+namespace blog.Application.Posts.Queries.GetPostsDetail
 {
-    public class GetPostsReportQuery : IRequest<PagedResult<PostSummaryResponse>>, IRequireActorLevel
+    public class GetPostsDetailQuery : IRequest<PagedResult<PostSummaryResponse>>
     {
         public Guid ActorId { get; init; }
         public PagedRequest Paging { get; init; } = new();
@@ -17,7 +15,5 @@ namespace blog.Application.Posts.Queries.GetPostsReport
         public PostSortBy SortBy { get; init; } = PostSortBy.Newest;
         public Guid? CategoryId { get; init; }
         public Guid? AuthorId { get; init; }
-
-        public UserLevel MinimumLevel => UserLevel.Admin;
     }
 }

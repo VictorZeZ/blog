@@ -1,11 +1,11 @@
 ﻿using blog.Domain.Common.Reports;
 using FluentValidation;
 
-namespace blog.Application.Posts.Queries.GetPostsReport
+namespace blog.Application.Posts.Queries.GetPostsDetail
 {
-    public class GetPostsReportQueryValidator : AbstractValidator<GetPostsReportQuery>
+    public class GetPostsDetailQueryValidator : AbstractValidator<GetPostsDetailQuery>
     {
-        public GetPostsReportQueryValidator()
+        public GetPostsDetailQueryValidator()
         {
             RuleFor(x => x.ActorId)
                 .NotEmpty();
