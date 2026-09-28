@@ -1,6 +1,7 @@
 ﻿using blog.Api.Common;
+using blog.Api.DTOs.Dashboard;
 using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
-using blog.Application.Dashboard.Queries.GetDashboard;
+using blog.Application.Dashboard.Queries.GetDashboardOverview;
 using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
 using blog.Application.Posts.Queries.GetMyPostStatusReport;
 using blog.Application.Posts.Queries.GetPostsReport;
@@ -13,7 +14,6 @@ using blog.Application.Users.Queries.GetTopAuthors;
 using blog.Application.Users.Queries.GetUserActivityReport;
 using blog.Domain.Common;
 using blog.Domain.Common.Reports;
-using blog.Domain.Dashboard.Enums;
 using blog.Domain.Posts.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -25,9 +25,19 @@ namespace blog.Api.Controllers
     public class DashboardController(IMediator mediator) : ApiController(mediator)
     {
         [HttpGet]
-        public async Task<IActionResult> GetDashboard([FromQuery] DashboardScope scope = DashboardScope.All, [FromQuery] DateOnly? from = null, [FromQuery] DateOnly? to = null, CancellationToken ct = default)
+        public async Task<IActionResult> GetDashboardOverview([FromQuery] DashboardOverviewRequest request, CancellationToken ct)
         {
-            var query = new GetDashboardQuery { ActorId = CurrentUserId, Scope = scope, From = from, To = to };
+            var query = new GetDashboardOverviewQuery
+            {
+                ActorId = CurrentUserId,
+                PostFilter = request.PostFilter,
+                UserLevelFilter = request.UserLevelFilter,
+                UserBanned = request.UserBanned,
+                UserDeleted = request.UserDeleted,
+                UserEmailConfirmed = request.UserEmailConfirmed,
+                UserTwoFactorEnabled = request.UserTwoFactorEnabled,
+                CategoryDeleted = request.CategoryDeleted
+            };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);

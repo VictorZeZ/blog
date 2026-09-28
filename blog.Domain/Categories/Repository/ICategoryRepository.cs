@@ -12,7 +12,6 @@ namespace blog.Domain.Categories.Repository
         Task<IEnumerable<Category>> GetAllActiveAsync(CancellationToken ct = default);
         Task<IEnumerable<Category>> GetAllDeletedAsync(CancellationToken ct = default);
         Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
-        Task<int> GetActiveCountAsync(CancellationToken ct = default);
         Task<int> CountAsync(TriStateFilter deleted, CancellationToken ct = default);
 
         // Write

@@ -30,9 +30,6 @@ namespace blog.Infrastructure.Repositories
         public async Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
             => await context.Categories.AnyAsync(x => x.Name == name, ct);
 
-        public async Task<int> GetActiveCountAsync(CancellationToken ct = default)
-            => await context.Categories.CountAsync(x => !x.IsDeleted, ct);
-
         public async Task<int> CountAsync(TriStateFilter deleted, CancellationToken ct = default)
         {
             var query = context.Categories.AsQueryable();

@@ -1,6 +1,6 @@
 ﻿using blog.Domain.Users.Enums;
 
-namespace blog.Application.Dashboard.Queries.GetDashboard
+namespace blog.Application.Dashboard.Queries.GetDashboardOverview
 {
     public class DashboardProfileResponse
     {
