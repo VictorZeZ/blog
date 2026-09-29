@@ -25,6 +25,7 @@ namespace blog.Application.Posts.Queries.GetPostsDetail
             actor.EnsureActive();
 
             var authorId = await ResolveAuthorIdAsync(actor, request.AuthorId, cancellationToken);
+            var canViewDraftDetails = actor.IsOwner() || (authorId is not null && authorId == actor.Id);
 
             var range = ReportDateRangeRules.Resolve(request.From, request.To);
 
@@ -37,7 +38,7 @@ namespace blog.Application.Posts.Queries.GetPostsDetail
                     throw new NotFoundException("Category", request.CategoryId.Value);
             }
 
-            var result = await postRepository.GetReportAsync(request.Paging, range.From, range.To, request.Filter, request.SortBy, categoryId, authorId, cancellationToken);
+            var result = await postRepository.GetReportAsync(request.Paging, range.From, range.To, request.Filter, request.SortBy, categoryId, authorId, canViewDraftDetails, cancellationToken);
 
             return new PagedResult<PostSummaryResponse>(
                 result.Items.Select(p => p.ToSummaryResponse()),

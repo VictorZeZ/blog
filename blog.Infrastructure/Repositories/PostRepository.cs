@@ -52,7 +52,7 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        public async Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default)
+        public async Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, bool canViewDraftDetails, CancellationToken ct = default)
         {
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
@@ -79,7 +79,12 @@ namespace blog.Infrastructure.Repositories
 
             query = query.ApplySorting(sortBy);
 
-            return await query.ToPagedResultAsync(paging, ct);
+            var totalCount = await query.CountAsync(ct);
+
+            var itemsQuery = canViewDraftDetails ? query : query.Where(x => x.Status != PostStatus.Draft);
+            var items = await itemsQuery.ApplyPaging(paging).ToListAsync(ct);
+
+            return new PagedResult<Post>(items, totalCount, paging.Page, paging.PageSize);
         }
 
         public async Task<PagedResult<Post>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
