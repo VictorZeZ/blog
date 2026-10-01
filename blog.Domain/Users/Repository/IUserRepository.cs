@@ -12,8 +12,7 @@ namespace blog.Domain.Users.Repository
         // Read
         Task<User?> GetByIdAsync(UserId id, CancellationToken ct = default);
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
-        Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default);
-        Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
+        Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy, UserFilter filter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default); Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
         Task<UserStats> GetStatsAsync(int registrationsPerDayCount, CancellationToken ct = default);
         Task<int> CountAsync(UserFilter levelFilter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default);
         Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);

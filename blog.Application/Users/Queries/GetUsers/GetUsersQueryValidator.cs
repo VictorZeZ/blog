@@ -20,6 +20,18 @@ namespace blog.Application.Users.Queries.GetUsers
 
             RuleFor(x => x.Filter)
                 .IsInEnum();
+
+            RuleFor(x => x.Banned)
+                .IsInEnum();
+
+            RuleFor(x => x.Deleted)
+                .IsInEnum();
+
+            RuleFor(x => x.EmailConfirmed)
+                .IsInEnum();
+
+            RuleFor(x => x.TwoFactorEnabled)
+                .IsInEnum();
         }
     }
 }

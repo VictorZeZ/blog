@@ -1,22 +1,15 @@
-﻿using blog.Domain.Common;
-using blog.Domain.Common.Enum;
-using blog.Domain.Common.Interfaces;
+﻿using blog.Domain.Common.Enum;
 using blog.Domain.Users.Enums;
-using MediatR;
 
-namespace blog.Application.Users.Queries.GetUsers
+namespace blog.Api.DTOs.Users
 {
-    public class GetUsersQuery : IRequest<PagedResult<GetUsersResponse>>, IRequireActorLevel
+    public class GetUsersRequest
     {
-        public Guid ActorId { get; init; }
-        public PagedRequest Paging { get; init; } = new();
         public UserSortBy SortBy { get; init; } = UserSortBy.Newest;
         public UserFilter Filter { get; init; } = UserFilter.All;
         public TriStateFilter Banned { get; init; } = TriStateFilter.All;
         public TriStateFilter Deleted { get; init; } = TriStateFilter.All;
         public TriStateFilter EmailConfirmed { get; init; } = TriStateFilter.All;
         public TriStateFilter TwoFactorEnabled { get; init; } = TriStateFilter.All;
-
-        public UserLevel MinimumLevel => UserLevel.Admin;
     }
 }

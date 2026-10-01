@@ -12,6 +12,10 @@ namespace blog.Application.Users.Queries.GetUsers
                 request.Paging,
                 request.SortBy,
                 request.Filter,
+                request.Banned,
+                request.Deleted,
+                request.EmailConfirmed,
+                request.TwoFactorEnabled,
                 cancellationToken);
 
             return new PagedResult<GetUsersResponse>(
@@ -23,6 +27,8 @@ namespace blog.Application.Users.Queries.GetUsers
                     Level = u.Level,
                     IsBanned = u.IsBanned,
                     IsDeleted = u.IsDeleted,
+                    IsEmailConfirmed = u.IsEmailConfirmed,
+                    TwoFactorEnabled = u.TwoFactorEnabled,
                     CreatedAt = u.CreatedAt
                 }),
                 result.TotalCount,

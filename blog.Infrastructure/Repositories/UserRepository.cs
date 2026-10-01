@@ -21,7 +21,7 @@ namespace blog.Infrastructure.Repositories
         public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
             => await context.Users.FirstOrDefaultAsync(x => x.Email == EmailNormalizer.Normalize(email), ct);
 
-        public async Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy = UserSortBy.Newest, UserFilter filter = UserFilter.All, CancellationToken ct = default)
+        public async Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy, UserFilter filter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default)
         {
             var query = context.Users.AsQueryable();
 
@@ -31,6 +31,34 @@ namespace blog.Infrastructure.Repositories
                 UserFilter.Author => query.Where(x => x.Level == UserLevel.Author),
                 UserFilter.Admin => query.Where(x => x.Level == UserLevel.Admin),
                 UserFilter.Owner => query.Where(x => x.Level == UserLevel.Owner),
+                _ => query
+            };
+
+            query = banned switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsBanned),
+                TriStateFilter.No => query.Where(x => !x.IsBanned),
+                _ => query
+            };
+
+            query = deleted switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsDeleted),
+                TriStateFilter.No => query.Where(x => !x.IsDeleted),
+                _ => query
+            };
+
+            query = emailConfirmed switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsEmailConfirmed),
+                TriStateFilter.No => query.Where(x => !x.IsEmailConfirmed),
+                _ => query
+            };
+
+            query = twoFactorEnabled switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.TwoFactorEnabled),
+                TriStateFilter.No => query.Where(x => !x.TwoFactorEnabled),
                 _ => query
             };
 

@@ -10,7 +10,6 @@ using blog.Application.Users.Queries.GetUserDetails;
 using blog.Application.Users.Queries.GetUsers;
 using blog.Domain.Common;
 using blog.Domain.Posts.Enums;
-using blog.Domain.Users.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,14 +20,18 @@ namespace blog.Api.Controllers
     public class AdminController(IMediator mediator) : ApiController(mediator)
     {
         [HttpGet("users")]
-        public async Task<IActionResult> GetUsers([FromQuery] PagedRequest paging, [FromQuery] UserSortBy sortBy = UserSortBy.Newest, [FromQuery] UserFilter filter = UserFilter.All, CancellationToken ct = default)
+        public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
         {
             var query = new GetUsersQuery
             {
                 ActorId = CurrentUserId,
                 Paging = paging,
-                SortBy = sortBy,
-                Filter = filter
+                SortBy = request.SortBy,
+                Filter = request.Filter,
+                Banned = request.Banned,
+                Deleted = request.Deleted,
+                EmailConfirmed = request.EmailConfirmed,
+                TwoFactorEnabled = request.TwoFactorEnabled
             };
 
             var result = await Mediator.Send(query, ct);

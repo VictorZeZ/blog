@@ -9,6 +9,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Unit\Application\Dashboard\**" />
+	  <EmbeddedResource Remove="Unit\Application\Dashboard\**" />
+	  <None Remove="Unit\Application\Dashboard\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="10.0.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -38,10 +44,6 @@
 
 	<ItemGroup>
 		<Using Include="Xunit" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Unit\Application\Dashboard\Queries\" />
 	</ItemGroup>
 
 </Project>

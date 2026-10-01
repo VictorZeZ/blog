@@ -10,6 +10,8 @@ namespace blog.Application.Users.Queries.GetUsers
         public UserLevel Level { get; init; }
         public bool IsBanned { get; init; }
         public bool IsDeleted { get; init; }
+        public bool IsEmailConfirmed { get; init; }
+        public bool TwoFactorEnabled { get; init; }
         public DateTime CreatedAt { get; init; }
     }
 }
