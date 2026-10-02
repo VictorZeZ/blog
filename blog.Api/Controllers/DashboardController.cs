@@ -1,5 +1,6 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Dashboard;
+using blog.Application.Categories.Queries.GetCategoriesDetail;
 using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
 using blog.Application.Dashboard.Queries.GetDashboardOverview;
 using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
@@ -130,6 +131,22 @@ namespace blog.Api.Controllers
                 ActorId = CurrentUserId,
                 From = from,
                 To = to
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategoriesDetail([FromQuery] CategoriesDetailRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
+        {
+            var query = new GetCategoriesDetailQuery
+            {
+                ActorId = CurrentUserId,
+                Paging = paging,
+                From = request.From,
+                To = request.To,
+                Deleted = request.Deleted
             };
 
             var result = await Mediator.Send(query, ct);
