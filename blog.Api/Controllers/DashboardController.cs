@@ -146,7 +146,8 @@ namespace blog.Api.Controllers
                 Paging = paging,
                 From = request.From,
                 To = request.To,
-                Deleted = request.Deleted
+                Deleted = request.Deleted,
+                SortBy = request.SortBy
             };
 
             var result = await Mediator.Send(query, ct);
