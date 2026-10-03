@@ -11,7 +11,7 @@ namespace blog.Application.Categories.Queries.GetCategoriesDetail
         {
             var range = ReportDateRangeRules.Resolve(request.From, request.To);
 
-            var result = await categoryRepository.GetPagedAsync(request.Paging, range.From, range.To, request.Deleted, cancellationToken);
+            var result = await categoryRepository.GetPagedAsync(request.Paging, range.From, range.To, request.Deleted, request.SortBy, cancellationToken);
 
             return new PagedResult<CategoryDetailResponse>(
                 result.Items.Select(c => new CategoryDetailResponse

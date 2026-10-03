@@ -1,4 +1,5 @@
 ﻿using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Enums;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
 using blog.Domain.Common;
@@ -29,7 +30,7 @@ namespace blog.Infrastructure.Repositories
                 .OrderByDescending(x => x.DeletedAt)
                 .ToListAsync(ct);
 
-        public async Task<PagedResult<Category>> GetPagedAsync(PagedRequest paging, DateOnly from, DateOnly to, TriStateFilter deleted, CancellationToken ct = default)
+        public async Task<PagedResult<Category>> GetPagedAsync(PagedRequest paging, DateOnly from, DateOnly to, TriStateFilter deleted, CategorySortBy sortBy, CancellationToken ct = default)
         {
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
@@ -44,7 +45,13 @@ namespace blog.Infrastructure.Repositories
                 _ => query
             };
 
-            query = query.OrderByDescending(x => x.CreatedAt);
+            query = sortBy switch
+            {
+                CategorySortBy.Oldest => query.OrderBy(x => x.CreatedAt),
+                CategorySortBy.NameAscending => query.OrderBy(x => x.Name),
+                CategorySortBy.NameDescending => query.OrderByDescending(x => x.Name),
+                _ => query.OrderByDescending(x => x.CreatedAt)
+            };
 
             return await query.ToPagedResultAsync(paging, ct);
         }

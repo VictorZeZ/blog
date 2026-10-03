@@ -19,6 +19,9 @@ namespace blog.Application.Categories.Queries.GetCategoriesDetail
             RuleFor(x => x.Deleted)
                 .IsInEnum();
 
+            RuleFor(x => x.SortBy)
+                .IsInEnum();
+
             this.ApplyReportDateRangeRules(x => x.From, x => x.To);
         }
     }
