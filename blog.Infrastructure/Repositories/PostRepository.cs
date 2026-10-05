@@ -1,12 +1,8 @@
-﻿using blog.Domain.Categories.Common;
-using blog.Domain.Categories.Types;
-using blog.Domain.Common;
-using blog.Domain.Posts.Common;
+﻿using blog.Domain.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
-using blog.Domain.Users.Common;
 using blog.Domain.Users.Types;
 using blog.Infrastructure.Persistence;
 using blog.Infrastructure.Persistence.Extensions;
@@ -50,41 +46,6 @@ namespace blog.Infrastructure.Repositories
             query = query.ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);
-        }
-
-        public async Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, bool canViewDraftDetails, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
-                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
-
-            query = filter switch
-            {
-                PostFilter.Draft => query.Where(x => x.Status == PostStatus.Draft),
-                PostFilter.PendingApproval => query.Where(x => x.Status == PostStatus.PendingApproval),
-                PostFilter.Published => query.Where(x => x.Status == PostStatus.Published),
-                PostFilter.Rejected => query.Where(x => x.Status == PostStatus.Rejected),
-                _ => query
-            };
-
-            if (categoryId is not null)
-                query = query.Where(x => x.CategoryId == categoryId);
-
-            if (authorId is not null)
-                query = query.Where(x => x.AuthorId == authorId);
-
-            query = query.ApplySorting(sortBy);
-
-            var totalCount = await query.CountAsync(ct);
-
-            var itemsQuery = canViewDraftDetails ? query : query.Where(x => x.Status != PostStatus.Draft);
-            var items = await itemsQuery.ApplyPaging(paging).ToListAsync(ct);
-
-            return new PagedResult<Post>(items, totalCount, paging.Page, paging.PageSize);
         }
 
         public async Task<PagedResult<Post>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
@@ -181,89 +142,8 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        public async Task<PostStats> GetStatsAsync(int postsPerDayCount, CancellationToken ct = default)
-            => await BuildStatsAsync(context.Posts, postsPerDayCount, ct);
-
-        public async Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
-            => await BuildStatusReportAsync(context.Posts, from, to, ct);
-
-        public async Task<PostStatusReport> GetStatusReportByAuthorAsync(UserId authorId, DateOnly from, DateOnly to, CancellationToken ct = default)
-            => await BuildStatusReportAsync(context.Posts.Where(x => x.AuthorId == authorId), from, to, ct);
-
-        public async Task<PostStatusReport> GetStatusReportByCategoryAsync(CategoryId categoryId, DateOnly from, DateOnly to, CancellationToken ct = default)
-            => await BuildStatusReportAsync(context.Posts.Where(x => x.CategoryId == categoryId), from, to, ct);
-
-        public async Task<IReadOnlyList<CategoryPerformanceResult>> GetCategoryBreakdownAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var postsInRange = context.Posts.Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
-
-            var query = context.Categories
-                .Where(c => !c.IsDeleted)
-                .GroupJoin(
-                    postsInRange,
-                    category => category.Id,
-                    post => post.CategoryId,
-                    (category, posts) => new CategoryPerformanceResult
-                    {
-                        CategoryId = category.Id.Value,
-                        Name = category.Name,
-                        DraftCount = posts.Count(p => p.Status == PostStatus.Draft),
-                        PendingApprovalCount = posts.Count(p => p.Status == PostStatus.PendingApproval),
-                        PublishedCount = posts.Count(p => p.Status == PostStatus.Published),
-                        RejectedCount = posts.Count(p => p.Status == PostStatus.Rejected),
-                        TotalCount = posts.Count(),
-                        TotalViewCount = posts.Sum(p => (int?)p.ViewCount) ?? 0
-                    })
-                .OrderBy(x => x.Name);
-
-            return await query.ToListAsync(ct);
-        }
-
-        public async Task<IReadOnlyList<Post>> GetTopViewedAsync(DateOnly from, DateOnly to, int topN, CategoryId? categoryId, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
-                .Where(x => x.Status == PostStatus.Published && x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
-
-            if (categoryId is not null)
-                query = query.Where(x => x.CategoryId == categoryId);
-
-            return await query
-                .OrderByDescending(x => x.ViewCount)
-                .Take(topN)
-                .ToListAsync(ct);
-        }
-
-        public async Task<IReadOnlyList<TopAuthorResult>> GetTopAuthorsAsync(DateOnly from, DateOnly to, int topN, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var query = context.Posts
-                .Where(x => x.Status == PostStatus.Published && x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
-                .GroupBy(x => new { x.AuthorId, x.Author.FirstName, x.Author.LastName })
-                .Select(g => new TopAuthorResult
-                {
-                    AuthorId = g.Key.AuthorId.Value,
-                    FullName = g.Key.FirstName + " " + g.Key.LastName,
-                    PublishedCount = g.Count(),
-                    TotalViewCount = g.Sum(p => p.ViewCount)
-                })
-                .OrderByDescending(x => x.TotalViewCount)
-                .Take(topN);
-
-            return await query.ToListAsync(ct);
-        }
-
-        public async Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default)
-            => await BuildStatsAsync(context.Posts.Where(x => x.AuthorId == authorId), postsPerDayCount, ct);
+        //public async Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        //    => await BuildStatusReportAsync(context.Posts, from, to, ct);
 
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts.AnyAsync(x => x.Slug == slug, ct);
@@ -352,75 +232,5 @@ namespace blog.Infrastructure.Repositories
                     g.Count(x => x.Status == PostStatus.PendingApproval),
                     g.Count(x => x.Status == PostStatus.Published),
                     g.Count(x => x.Status == PostStatus.Rejected)));
-
-        private static async Task<PostStats> BuildStatsAsync(IQueryable<Post> query, int postsPerDayCount, CancellationToken ct)
-        {
-            var counts = await ProjectStatusCounts(query).FirstOrDefaultAsync(ct) ?? new PostStatusCounts(0, 0, 0, 0, 0);
-            var totalViews = await query.Select(x => (int?)x.ViewCount).SumAsync(ct) ?? 0;
-
-            var since = DateTime.UtcNow.Date.AddDays(-(postsPerDayCount - 1));
-
-            var rows = await query
-                .Where(p => p.CreatedAt >= since)
-                .GroupBy(p => p.CreatedAt.Date)
-                .Select(g => new { Date = g.Key, Count = g.Count() })
-                .OrderBy(e => e.Date)
-                .ToListAsync(ct);
-
-            var postsPerDay = rows
-                .Select(r => new DailyCount(DateOnly.FromDateTime(r.Date), r.Count))
-                .ToList();
-
-            return new PostStats
-            {
-                TotalCount = counts.Total,
-                DraftCount = counts.Draft,
-                PendingApprovalCount = counts.PendingApproval,
-                PublishedCount = counts.Published,
-                RejectedCount = counts.Rejected,
-                TotalViewCount = totalViews,
-                PostsPerDay = postsPerDay
-            };
-        }
-
-        private static async Task<PostStatusReport> BuildStatusReportAsync(IQueryable<Post> query, DateOnly from, DateOnly to, CancellationToken ct)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var inRange = query.Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
-
-            var counts = await ProjectStatusCounts(inRange).FirstOrDefaultAsync(ct) ?? new PostStatusCounts(0, 0, 0, 0, 0);
-
-            var dailyRows = await inRange
-                .GroupBy(x => new { x.CreatedAt.Date, x.Status })
-                .Select(g => new { g.Key.Date, g.Key.Status, Count = g.Count() })
-                .ToListAsync(ct);
-
-            var byDate = dailyRows
-                .GroupBy(r => DateOnly.FromDateTime(r.Date))
-                .ToDictionary(g => g.Key, g => new PostStatusDailyCount(
-                    g.Key,
-                    g.Where(x => x.Status == PostStatus.Draft).Sum(x => x.Count),
-                    g.Where(x => x.Status == PostStatus.PendingApproval).Sum(x => x.Count),
-                    g.Where(x => x.Status == PostStatus.Published).Sum(x => x.Count),
-                    g.Where(x => x.Status == PostStatus.Rejected).Sum(x => x.Count)));
-
-            var dailyBreakdown = new List<PostStatusDailyCount>();
-            for (var date = from; date <= to; date = date.AddDays(1))
-                dailyBreakdown.Add(byDate.TryGetValue(date, out var day) ? day : new PostStatusDailyCount(date, 0, 0, 0, 0));
-
-            return new PostStatusReport
-            {
-                From = from,
-                To = to,
-                TotalCount = counts.Total,
-                DraftCount = counts.Draft,
-                PendingApprovalCount = counts.PendingApproval,
-                PublishedCount = counts.Published,
-                RejectedCount = counts.Rejected,
-                DailyBreakdown = dailyBreakdown
-            };
-        }
     }
 }
