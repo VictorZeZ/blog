@@ -1,11 +1,8 @@
 ﻿using blog.Domain.Categories.Entities;
-using blog.Domain.Categories.Enums;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
-using blog.Domain.Common;
 using blog.Domain.Common.Enum;
 using blog.Infrastructure.Persistence;
-using blog.Infrastructure.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace blog.Infrastructure.Repositories
@@ -29,32 +26,6 @@ namespace blog.Infrastructure.Repositories
                 .Where(x => x.IsDeleted)
                 .OrderByDescending(x => x.DeletedAt)
                 .ToListAsync(ct);
-
-        public async Task<PagedResult<Category>> GetPagedAsync(PagedRequest paging, DateOnly from, DateOnly to, TriStateFilter deleted, CategorySortBy sortBy, CancellationToken ct = default)
-        {
-            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-            var query = context.Categories
-                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
-
-            query = deleted switch
-            {
-                TriStateFilter.Yes => query.Where(x => x.IsDeleted),
-                TriStateFilter.No => query.Where(x => !x.IsDeleted),
-                _ => query
-            };
-
-            query = sortBy switch
-            {
-                CategorySortBy.Oldest => query.OrderBy(x => x.CreatedAt),
-                CategorySortBy.NameAscending => query.OrderBy(x => x.Name),
-                CategorySortBy.NameDescending => query.OrderByDescending(x => x.Name),
-                _ => query.OrderByDescending(x => x.CreatedAt)
-            };
-
-            return await query.ToPagedResultAsync(paging, ct);
-        }
 
         public async Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
             => await context.Categories.AnyAsync(x => x.Name == name, ct);

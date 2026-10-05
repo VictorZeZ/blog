@@ -1,11 +1,8 @@
-﻿using blog.Domain.Categories.Common;
-using blog.Domain.Categories.Types;
-using blog.Domain.Common;
+﻿using blog.Domain.Common;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
-using blog.Domain.Users.Common;
 using blog.Domain.Users.Types;
 
 namespace blog.Domain.Posts.Repository
@@ -24,15 +21,6 @@ namespace blog.Domain.Posts.Repository
         Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default);
         Task<int> CountAsync(PostFilter filter, UserId? authorId, CancellationToken ct = default);
         Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
-        Task<PostStats> GetStatsAsync(int postsPerDayCount, CancellationToken ct = default);
-        Task<PostStats> GetStatsByAuthorAsync(UserId authorId, int postsPerDayCount, CancellationToken ct = default);
-        Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
-        Task<PostStatusReport> GetStatusReportByAuthorAsync(UserId authorId, DateOnly from, DateOnly to, CancellationToken ct = default);
-        Task<PagedResult<Post>> GetReportAsync(PagedRequest paging, DateOnly from, DateOnly to, PostFilter filter, PostSortBy sortBy, CategoryId? categoryId, UserId? authorId, bool canViewDraftDetails, CancellationToken ct = default);
-        Task<PostStatusReport> GetStatusReportByCategoryAsync(CategoryId categoryId, DateOnly from, DateOnly to, CancellationToken ct = default);
-        Task<IReadOnlyList<CategoryPerformanceResult>> GetCategoryBreakdownAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
-        Task<IReadOnlyList<Post>> GetTopViewedAsync(DateOnly from, DateOnly to, int topN, CategoryId? categoryId, CancellationToken ct = default);
-        Task<IReadOnlyList<TopAuthorResult>> GetTopAuthorsAsync(DateOnly from, DateOnly to, int topN, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Post post, CancellationToken ct = default);
