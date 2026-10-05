@@ -142,9 +142,6 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        //public async Task<PostStatusReport> GetStatusReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
-        //    => await BuildStatusReportAsync(context.Posts, from, to, ct);
-
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts.AnyAsync(x => x.Slug == slug, ct);
 
@@ -220,17 +217,5 @@ namespace blog.Infrastructure.Repositories
 
             return result;
         }
-
-        private sealed record PostStatusCounts(int Total, int Draft, int PendingApproval, int Published, int Rejected);
-
-        private static IQueryable<PostStatusCounts> ProjectStatusCounts(IQueryable<Post> query)
-            => query
-                .GroupBy(_ => 1)
-                .Select(g => new PostStatusCounts(
-                    g.Count(),
-                    g.Count(x => x.Status == PostStatus.Draft),
-                    g.Count(x => x.Status == PostStatus.PendingApproval),
-                    g.Count(x => x.Status == PostStatus.Published),
-                    g.Count(x => x.Status == PostStatus.Rejected)));
     }
 }
