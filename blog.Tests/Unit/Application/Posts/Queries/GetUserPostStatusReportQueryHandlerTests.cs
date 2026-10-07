@@ -1,6 +1,4 @@
-﻿using blog.Application.Posts.Queries.GetUserPostStatusReport;
-using blog.Domain.Posts.Common;
-using blog.Domain.Posts.Repository;
+﻿using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Types;
 using FluentAssertions;
 using Moq;
