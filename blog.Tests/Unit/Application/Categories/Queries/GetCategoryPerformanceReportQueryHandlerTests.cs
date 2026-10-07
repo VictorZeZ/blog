@@ -1,6 +1,4 @@
-﻿using blog.Application.Categories.Queries.GetCategoryPerformanceReport;
-using blog.Domain.Categories.Common;
-using blog.Domain.Posts.Repository;
+﻿using blog.Domain.Posts.Repository;
 using FluentAssertions;
 using Moq;
 

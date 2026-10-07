@@ -1,6 +1,4 @@
-﻿using blog.Application.Users.Queries.GetUserActivityReport;
-using blog.Domain.Users.Common;
-using blog.Domain.Users.Repository;
+﻿using blog.Domain.Users.Repository;
 using FluentAssertions;
 using Moq;
 

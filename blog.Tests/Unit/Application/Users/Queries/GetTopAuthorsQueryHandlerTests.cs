@@ -1,6 +1,4 @@
-﻿using blog.Application.Users.Queries.GetTopAuthors;
-using blog.Domain.Posts.Repository;
-using blog.Domain.Users.Common;
+﻿using blog.Domain.Posts.Repository;
 using FluentAssertions;
 using Moq;
 

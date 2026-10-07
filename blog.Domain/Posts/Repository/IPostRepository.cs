@@ -1,5 +1,4 @@
 ﻿using blog.Domain.Common;
-using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;

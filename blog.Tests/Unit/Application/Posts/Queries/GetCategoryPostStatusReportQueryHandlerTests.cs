@@ -1,8 +1,6 @@
-﻿using blog.Application.Posts.Queries.GetCategoryPostStatusReport;
-using blog.Domain.Categories.Entities;
+﻿using blog.Domain.Categories.Entities;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Exceptions;
-using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Repository;
 using FluentAssertions;
 using Moq;
