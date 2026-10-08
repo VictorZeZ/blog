@@ -1,4 +1,6 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Categories.Types;
+using blog.Domain.Common;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
@@ -140,6 +142,45 @@ namespace blog.Infrastructure.Repositories
                 .ApplySorting(sortBy);
 
             return await query.ToPagedResultAsync(paging, ct);
+        }
+
+        public async Task<IReadOnlyList<PostStatusDailyCount>> GetDailyStatusReportAsync(DateOnly from, DateOnly to, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var query = context.Posts
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc);
+
+            if (categoryId is not null)
+                query = query.Where(x => x.CategoryId == categoryId);
+
+            if (authorId is not null)
+                query = query.Where(x => x.AuthorId == authorId);
+
+            var grouped = await query
+                .GroupBy(x => new { Date = x.CreatedAt.Date, x.Status })
+                .Select(g => new { g.Key.Date, g.Key.Status, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var byDate = grouped
+                .GroupBy(x => DateOnly.FromDateTime(x.Date))
+                .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.Status, x => x.Count));
+
+            var days = new List<PostStatusDailyCount>();
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                var counts = byDate.GetValueOrDefault(date);
+
+                days.Add(new PostStatusDailyCount(
+                    date,
+                    counts?.GetValueOrDefault(PostStatus.Draft) ?? 0,
+                    counts?.GetValueOrDefault(PostStatus.PendingApproval) ?? 0,
+                    counts?.GetValueOrDefault(PostStatus.Published) ?? 0,
+                    counts?.GetValueOrDefault(PostStatus.Rejected) ?? 0));
+            }
+
+            return days;
         }
 
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken ct = default)

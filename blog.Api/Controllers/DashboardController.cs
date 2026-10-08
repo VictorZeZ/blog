@@ -1,6 +1,7 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Dashboard;
 using blog.Application.Dashboard.Queries.GetDashboardOverview;
+using blog.Application.Posts.Queries.GetPostsDailyReport;
 using blog.Application.Users.Commands.RevokeSession;
 using blog.Application.Users.Queries.GetMySessions;
 using MediatR;
@@ -25,6 +26,22 @@ namespace blog.Api.Controllers
                 UserEmailConfirmed = request.UserEmailConfirmed,
                 UserTwoFactorEnabled = request.UserTwoFactorEnabled,
                 CategoryDeleted = request.CategoryDeleted
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("posts")]
+        public async Task<IActionResult> GetPostsDailyReport([FromQuery] PostsReportRequest request, CancellationToken ct)
+        {
+            var query = new GetPostsDailyReportQuery
+            {
+                ActorId = CurrentUserId,
+                From = request.From,
+                To = request.To,
+                CategoryId = request.CategoryId,
+                AuthorId = request.AuthorId
             };
 
             var result = await Mediator.Send(query, ct);

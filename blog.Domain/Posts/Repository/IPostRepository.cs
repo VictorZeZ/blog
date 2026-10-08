@@ -1,4 +1,6 @@
-﻿using blog.Domain.Common;
+﻿using blog.Domain.Categories.Types;
+using blog.Domain.Common;
+using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Types;
@@ -20,6 +22,7 @@ namespace blog.Domain.Posts.Repository
         Task<int> CountDraftsByAuthorAsync(UserId authorId, CancellationToken ct = default);
         Task<int> CountAsync(PostFilter filter, UserId? authorId, CancellationToken ct = default);
         Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
+        Task<IReadOnlyList<PostStatusDailyCount>> GetDailyStatusReportAsync(DateOnly from, DateOnly to, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Post post, CancellationToken ct = default);
