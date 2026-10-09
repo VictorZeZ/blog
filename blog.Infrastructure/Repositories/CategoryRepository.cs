@@ -1,4 +1,5 @@
-﻿using blog.Domain.Categories.Entities;
+﻿using blog.Domain.Categories.Common;
+using blog.Domain.Categories.Entities;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
 using blog.Domain.Common.Enum;
@@ -42,6 +43,38 @@ namespace blog.Infrastructure.Repositories
             };
 
             return await query.CountAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<CategoryDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var created = await context.Categories
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(x => x.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var deleted = await context.Categories
+                .Where(x => x.DeletedAt >= fromUtc && x.DeletedAt < toExclusiveUtc)
+                .GroupBy(x => x.DeletedAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var createdByDate = created.ToDictionary(x => DateOnly.FromDateTime(x.Date), x => x.Count);
+            var deletedByDate = deleted.ToDictionary(x => DateOnly.FromDateTime(x.Date), x => x.Count);
+
+            var days = new List<CategoryDailyCount>();
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                days.Add(new CategoryDailyCount(
+                    date,
+                    createdByDate.GetValueOrDefault(date),
+                    deletedByDate.GetValueOrDefault(date)));
+            }
+
+            return days;
         }
 
         public async Task AddAsync(Category category, CancellationToken ct = default)
