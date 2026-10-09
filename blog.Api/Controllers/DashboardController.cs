@@ -1,5 +1,6 @@
 ﻿using blog.Api.Common;
 using blog.Api.DTOs.Dashboard;
+using blog.Application.Categories.Queries.GetCategoriesDailyReport;
 using blog.Application.Dashboard.Queries.GetDashboardOverview;
 using blog.Application.Posts.Queries.GetPostsDailyReport;
 using blog.Application.Users.Commands.RevokeSession;
@@ -59,6 +60,20 @@ namespace blog.Api.Controllers
                 To = request.To,
                 EmailConfirmed = request.EmailConfirmed,
                 TwoFactorEnabled = request.TwoFactorEnabled
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategoriesDailyReport([FromQuery] ReportDateRangeRequest request, CancellationToken ct)
+        {
+            var query = new GetCategoriesDailyReportQuery
+            {
+                ActorId = CurrentUserId,
+                From = request.From,
+                To = request.To
             };
 
             var result = await Mediator.Send(query, ct);
