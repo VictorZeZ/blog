@@ -154,6 +154,56 @@ namespace blog.Infrastructure.Repositories
             return await query.CountAsync(ct);
         }
 
+        public async Task<IReadOnlyList<UserDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var toExclusiveUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            var users = ApplyActivityFilters(context.Users, emailConfirmed, twoFactorEnabled);
+
+            var registrations = await users
+                .Where(x => x.CreatedAt >= fromUtc && x.CreatedAt < toExclusiveUtc)
+                .GroupBy(x => new { x.CreatedAt.Date, x.Level })
+                .Select(g => new { g.Key.Date, g.Key.Level, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var bans = await users
+                .Where(x => x.BannedAt >= fromUtc && x.BannedAt < toExclusiveUtc)
+                .GroupBy(x => x.BannedAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var deletions = await users
+                .Where(x => x.DeletedAt >= fromUtc && x.DeletedAt < toExclusiveUtc)
+                .GroupBy(x => x.DeletedAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync(ct);
+
+            var registrationsByDate = registrations
+                .GroupBy(x => DateOnly.FromDateTime(x.Date))
+                .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.Level, x => x.Count));
+
+            var bansByDate = bans.ToDictionary(x => DateOnly.FromDateTime(x.Date), x => x.Count);
+            var deletionsByDate = deletions.ToDictionary(x => DateOnly.FromDateTime(x.Date), x => x.Count);
+
+            var days = new List<UserDailyCount>();
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                var levels = registrationsByDate.GetValueOrDefault(date);
+
+                days.Add(new UserDailyCount(
+                    date,
+                    levels?.GetValueOrDefault(UserLevel.Normal) ?? 0,
+                    levels?.GetValueOrDefault(UserLevel.Author) ?? 0,
+                    levels?.GetValueOrDefault(UserLevel.Admin) ?? 0,
+                    levels?.GetValueOrDefault(UserLevel.Owner) ?? 0,
+                    bansByDate.GetValueOrDefault(date),
+                    deletionsByDate.GetValueOrDefault(date)));
+            }
+
+            return days;
+        }
+
         public async Task AddAsync(User user, CancellationToken ct = default)
             => await context.Users.AddAsync(user, ct);
 
@@ -164,6 +214,25 @@ namespace blog.Infrastructure.Repositories
         {
             user.SoftDelete();
             context.Users.Update(user);
+        }
+
+
+        // Private
+        private static IQueryable<User> ApplyActivityFilters(IQueryable<User> query, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled)
+        {
+            query = emailConfirmed switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.IsEmailConfirmed),
+                TriStateFilter.No => query.Where(x => !x.IsEmailConfirmed),
+                _ => query
+            };
+
+            return twoFactorEnabled switch
+            {
+                TriStateFilter.Yes => query.Where(x => x.TwoFactorEnabled),
+                TriStateFilter.No => query.Where(x => !x.TwoFactorEnabled),
+                _ => query
+            };
         }
 
         // Escapes LIKE/ILIKE wildcard characters in user-supplied search terms so that
