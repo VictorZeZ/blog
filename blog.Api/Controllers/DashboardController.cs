@@ -4,6 +4,7 @@ using blog.Application.Dashboard.Queries.GetDashboardOverview;
 using blog.Application.Posts.Queries.GetPostsDailyReport;
 using blog.Application.Users.Commands.RevokeSession;
 using blog.Application.Users.Queries.GetMySessions;
+using blog.Application.Users.Queries.GetUsersDailyReport;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,22 @@ namespace blog.Api.Controllers
                 To = request.To,
                 CategoryId = request.CategoryId,
                 AuthorId = request.AuthorId
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsersDailyReport([FromQuery] UsersReportRequest request, CancellationToken ct)
+        {
+            var query = new GetUsersDailyReportQuery
+            {
+                ActorId = CurrentUserId,
+                From = request.From,
+                To = request.To,
+                EmailConfirmed = request.EmailConfirmed,
+                TwoFactorEnabled = request.TwoFactorEnabled
             };
 
             var result = await Mediator.Send(query, ct);

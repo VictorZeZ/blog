@@ -14,6 +14,7 @@ namespace blog.Domain.Users.Repository
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
         Task<PagedResult<User>> GetAllAsync(PagedRequest paging, UserSortBy sortBy, UserFilter filter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default); Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
         Task<int> CountAsync(UserFilter levelFilter, TriStateFilter banned, TriStateFilter deleted, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default);
+        Task<IReadOnlyList<UserDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default);
         Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default);
 
         // Write
