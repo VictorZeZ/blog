@@ -2,8 +2,8 @@
 {
     public class SiteOverviewResponse
     {
-        public int PostsCount { get; init; }
-        public int UsersCount { get; init; }
-        public int CategoriesCount { get; init; }
+        public PostOverviewResponse Posts { get; init; } = null!;
+        public UserOverviewResponse Users { get; init; } = null!;
+        public CategoryOverviewResponse Categories { get; init; } = null!;
     }
 }

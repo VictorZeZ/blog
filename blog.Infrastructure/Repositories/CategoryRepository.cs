@@ -45,6 +45,18 @@ namespace blog.Infrastructure.Repositories
             return await query.CountAsync(ct);
         }
 
+        public async Task<CategoryOverviewCounts> GetOverviewCountsAsync(CancellationToken ct = default)
+        {
+            var counts = await context.Categories
+                .GroupBy(_ => 1)
+                .Select(g => new CategoryOverviewCounts(
+                    g.Count(x => !x.IsDeleted),
+                    g.Count(x => x.IsDeleted)))
+                .FirstOrDefaultAsync(ct);
+
+            return counts ?? new CategoryOverviewCounts(0, 0);
+        }
+
         public async Task<IReadOnlyList<CategoryDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
         {
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);

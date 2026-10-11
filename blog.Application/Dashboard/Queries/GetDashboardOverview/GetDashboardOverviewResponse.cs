@@ -3,7 +3,7 @@
     public class GetDashboardOverviewResponse
     {
         public DashboardProfileResponse Profile { get; init; } = null!;
-        public int MyPostsCount { get; init; }
+        public PostOverviewResponse MyPosts { get; init; } = null!;
         public SiteOverviewResponse? Site { get; init; }
     }
 }

@@ -16,19 +16,9 @@ namespace blog.Api.Controllers
     public class DashboardController(IMediator mediator) : ApiController(mediator)
     {
         [HttpGet]
-        public async Task<IActionResult> GetDashboardOverview([FromQuery] DashboardOverviewRequest request, CancellationToken ct)
+        public async Task<IActionResult> GetDashboardOverview(CancellationToken ct)
         {
-            var query = new GetDashboardOverviewQuery
-            {
-                ActorId = CurrentUserId,
-                PostFilter = request.PostFilter,
-                UserLevelFilter = request.UserLevelFilter,
-                UserBanned = request.UserBanned,
-                UserDeleted = request.UserDeleted,
-                UserEmailConfirmed = request.UserEmailConfirmed,
-                UserTwoFactorEnabled = request.UserTwoFactorEnabled,
-                CategoryDeleted = request.CategoryDeleted
-            };
+            var query = new GetDashboardOverviewQuery { ActorId = CurrentUserId };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);
