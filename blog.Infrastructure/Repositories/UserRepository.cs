@@ -154,6 +154,25 @@ namespace blog.Infrastructure.Repositories
             return await query.CountAsync(ct);
         }
 
+        public async Task<UserOverviewCounts> GetOverviewCountsAsync(CancellationToken ct = default)
+        {
+            var counts = await context.Users
+                .GroupBy(_ => 1)
+                .Select(g => new UserOverviewCounts(
+                    g.Count(x => x.Level == UserLevel.Normal),
+                    g.Count(x => x.Level == UserLevel.Author),
+                    g.Count(x => x.Level == UserLevel.Admin),
+                    g.Count(x => x.Level == UserLevel.Owner),
+                    g.Count(x => !x.IsBanned && !x.IsDeleted),
+                    g.Count(x => x.IsBanned),
+                    g.Count(x => x.IsDeleted),
+                    g.Count(x => x.IsEmailConfirmed),
+                    g.Count(x => x.TwoFactorEnabled)))
+                .FirstOrDefaultAsync(ct);
+
+            return counts ?? new UserOverviewCounts(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+
         public async Task<IReadOnlyList<UserDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled, CancellationToken ct = default)
         {
             var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);

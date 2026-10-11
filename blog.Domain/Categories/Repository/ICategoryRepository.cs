@@ -14,6 +14,7 @@ namespace blog.Domain.Categories.Repository
         Task<IEnumerable<Category>> GetAllDeletedAsync(CancellationToken ct = default);
         Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
         Task<int> CountAsync(TriStateFilter deleted, CancellationToken ct = default);
+        Task<CategoryOverviewCounts> GetOverviewCountsAsync(CancellationToken ct = default);
         Task<IReadOnlyList<CategoryDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
 
         // Write

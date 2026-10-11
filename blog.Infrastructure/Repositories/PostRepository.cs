@@ -208,6 +208,26 @@ namespace blog.Infrastructure.Repositories
             return await query.CountAsync(ct);
         }
 
+        public async Task<PostOverviewCounts> GetOverviewCountsAsync(UserId? authorId, CancellationToken ct = default)
+        {
+            var query = context.Posts.AsQueryable();
+
+            if (authorId is not null)
+                query = query.Where(x => x.AuthorId == authorId);
+
+            var counts = await query
+                .GroupBy(_ => 1)
+                .Select(g => new PostOverviewCounts(
+                    g.Count(x => x.Status == PostStatus.Draft),
+                    g.Count(x => x.Status == PostStatus.PendingApproval),
+                    g.Count(x => x.Status == PostStatus.Published),
+                    g.Count(x => x.Status == PostStatus.Rejected),
+                    g.Sum(x => x.Status == PostStatus.Published ? x.ViewCount : 0)))
+                .FirstOrDefaultAsync(ct);
+
+            return counts ?? new PostOverviewCounts(0, 0, 0, 0, 0);
+        }
+
         public async Task AddAsync(Post post, CancellationToken ct = default)
             => await context.Posts.AddAsync(post, ct);
 
