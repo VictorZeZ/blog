@@ -1,10 +1,8 @@
 ﻿using blog.Application.Users.Queries.GetUsersDailyReport;
-using blog.Domain.Categories.Common;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Repository;
-using blog.Domain.Users.Common;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;

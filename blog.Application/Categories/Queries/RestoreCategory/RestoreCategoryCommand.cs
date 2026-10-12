@@ -2,7 +2,7 @@
 using blog.Domain.Users.Enums;
 using MediatR;
 
-namespace blog.Application.Categories.Commands.RestoreCategory
+namespace blog.Application.Categories.Queries.RestoreCategory
 {
     public class RestoreCategoryCommand : IRequest<RestoreCategoryResponse>, IRequireActorLevel
     {
