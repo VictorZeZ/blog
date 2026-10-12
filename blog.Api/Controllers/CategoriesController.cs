@@ -2,11 +2,11 @@
 using blog.Api.DTOs.Categories;
 using blog.Application.Categories.Commands.CreateCategory;
 using blog.Application.Categories.Commands.DeleteCategory;
-using blog.Application.Categories.Commands.RestoreCategory;
 using blog.Application.Categories.Commands.UpdateCategory;
 using blog.Application.Categories.Queries.GetAllCategories;
 using blog.Application.Categories.Queries.GetCategoryBySlug;
 using blog.Application.Categories.Queries.GetDeletedCategories;
+using blog.Application.Categories.Queries.RestoreCategory;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

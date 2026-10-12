@@ -4,7 +4,7 @@ using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using MediatR;
 
-namespace blog.Application.Categories.Commands.RestoreCategory
+namespace blog.Application.Categories.Queries.RestoreCategory
 {
     public class RestoreCategoryCommandHandler(ICategoryRepository categoryRepository, IUnitOfWork unitOfWork) : IRequestHandler<RestoreCategoryCommand, RestoreCategoryResponse>
     {
