@@ -157,23 +157,29 @@ namespace blog.Api.Controllers
 
         [HttpGet("search")]
         [AllowAnonymous]
-        public async Task<IActionResult> SearchPosts([FromQuery] string term, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+        public async Task<IActionResult> SearchPosts([FromQuery] SearchPostsRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
         {
-            var query = new SearchPostsQuery { Term = term, Paging = paging, SortBy = sortBy };
+            var query = new SearchPostsQuery
+            {
+                Term = request.Term,
+                Paging = paging,
+                SortBy = request.SortBy
+            };
+
             var result = await Mediator.Send(query, ct);
             return Ok(result);
         }
 
         [HttpGet("related")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetPostsByTag([FromQuery] List<string> tags, [FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, [FromQuery] PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
+        public async Task<IActionResult> GetPostsByTag([FromQuery] GetPostsByTagRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
         {
             var query = new GetPostsByTagQuery
             {
-                Tags = tags,
+                Tags = request.Tags,
                 Paging = paging,
-                SortBy = sortBy,
-                GroupingMode = groupingMode
+                SortBy = request.SortBy,
+                GroupingMode = request.GroupingMode
             };
 
             var result = await Mediator.Send(query, ct);

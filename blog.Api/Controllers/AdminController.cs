@@ -80,14 +80,14 @@ namespace blog.Api.Controllers
         }
 
         [HttpGet("posts")]
-        public async Task<IActionResult> GetAllPosts([FromQuery] PagedRequest paging, [FromQuery] PostSortBy sortBy = PostSortBy.Newest, [FromQuery] PostFilter filter = PostFilter.All, CancellationToken ct = default)
+        public async Task<IActionResult> GetAllPosts([FromQuery] GetAllPostsRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
         {
             var query = new GetAllPostsQuery
             {
                 ActorId = CurrentUserId,
                 Paging = paging,
-                SortBy = sortBy,
-                Filter = filter
+                SortBy = request.SortBy,
+                Filter = request.Filter
             };
 
             var result = await Mediator.Send(query, ct);
