@@ -88,6 +88,9 @@ namespace blog.Domain.Posts.Entities
 
         public void Update(string title, string summary, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, Category category)
         {
+            if (Title != title)
+                Slug = GenerateSlug(title);
+
             Title = title;
             Summary = summary;
             TitleImageUrl = titleImageUrl;
@@ -95,7 +98,6 @@ namespace blog.Domain.Posts.Entities
             Tags = tags;
             CategoryId = category.Id;
             Category = category;
-            Slug = GenerateSlug(title);
 
             if (requiresReapproval && Status == PostStatus.Published)
                 Status = PostStatus.PendingApproval;

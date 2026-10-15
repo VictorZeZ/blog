@@ -1,4 +1,5 @@
-﻿using blog.Domain.Posts.Common;
+﻿using blog.Domain.Common.Helpers;
+using blog.Domain.Posts.Common;
 using FluentValidation;
 
 namespace blog.Application.Posts.Commands.CreateDraft
@@ -15,7 +16,8 @@ namespace blog.Application.Posts.Commands.CreateDraft
 
             RuleFor(x => x.Title)
                 .NotEmpty()
-                .MaximumLength(256);
+                .MaximumLength(256)
+                .ApplySlugSourceRules();
 
             RuleFor(x => x.Summary)
                 .NotEmpty()

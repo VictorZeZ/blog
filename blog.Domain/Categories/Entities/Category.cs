@@ -19,8 +19,10 @@ namespace blog.Domain.Categories.Entities
 
         public void Update(string name)
         {
+            if (Name != name)
+                Slug = SlugGenerator.Generate(name);
+
             Name = name;
-            Slug = SlugGenerator.Generate(name);
             MarkAsUpdated();
         }
     }

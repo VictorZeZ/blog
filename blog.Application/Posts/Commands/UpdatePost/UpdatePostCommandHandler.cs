@@ -37,7 +37,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
                 throw new NotFoundException("Category", request.CategoryId);
 
             var newSlug = Post.GenerateSlug(request.Title);
-            if (newSlug != post.Slug)
+            if (request.Title != post.Title && newSlug != post.Slug)
             {
                 var slugTaken = await postRepository.ExistsBySlugAsync(newSlug, cancellationToken);
                 if (slugTaken)

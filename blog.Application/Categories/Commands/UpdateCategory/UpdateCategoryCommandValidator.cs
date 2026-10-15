@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Common.Helpers;
+using FluentValidation;
 
 namespace blog.Application.Categories.Commands.UpdateCategory
 {
@@ -14,7 +15,8 @@ namespace blog.Application.Categories.Commands.UpdateCategory
 
             RuleFor(x => x.Name)
                 .NotEmpty()
-                .MaximumLength(100);
+                .MaximumLength(100)
+                .ApplySlugSourceRules();
         }
     }
 }
