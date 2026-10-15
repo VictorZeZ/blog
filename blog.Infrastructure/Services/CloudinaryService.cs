@@ -4,11 +4,12 @@ using blog.Domain.Common.Settings;
 using blog.Domain.Exceptions;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace blog.Infrastructure.Services
 {
-    public class CloudinaryService(IOptions<CloudinarySettings> settings) : IFileStorageService
+    public class CloudinaryService(IOptions<CloudinarySettings> settings, ILogger<CloudinaryService> logger) : IFileStorageService
     {
         private readonly Cloudinary _cloudinary = new(new Account(settings.Value.CloudName, settings.Value.ApiKey, settings.Value.ApiSecret));
 
@@ -21,47 +22,27 @@ namespace blog.Infrastructure.Services
 
         public async Task<string> UploadAsync(Stream fileStream, string fileName, StorageFolder folder, CancellationToken ct = default)
         {
-            var folderName = ResolveFolderName(folder);
-            var publicId = GenerateRandomPublicId();
-
             var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(fileName, fileStream),
-                Folder = folderName,
-                PublicId = publicId,
+                Folder = ResolveFolderName(folder),
+                PublicId = GenerateRandomPublicId(),
                 UseFilename = false,
                 UniqueFilename = false,
                 Overwrite = false,
                 Format = ShouldConvertToWebp(fileName) ? "webp" : null
             };
 
-            var result = await _cloudinary.UploadAsync(uploadParams, ct);
-
-            if (result.Error is not null)
-            {
-                throw new Exception(
-                    $"Cloudinary Upload Failed\n" +
-                    $"StatusCode: {result.StatusCode}\n" +
-                    $"Error Code: {result.Error.GetType}\n" +
-                    $"Error Message: {result.Error.Message}\n" +
-                    $"Error: {result.Error}"
-                );
-            }
-
-            //if (result.Error is not null)
-            //    throw new UnavailableException("Cloudinary");
+            var result = await ExecuteAsync(() => _cloudinary.UploadAsync(uploadParams, ct), "upload");
 
             return result.SecureUrl.ToString();
         }
 
         public async Task DeleteAsync(string imageUrl, CancellationToken ct = default)
         {
-            var publicId = ExtractPublicId(imageUrl);
-            var deleteParams = new DeletionParams(publicId);
-            var result = await _cloudinary.DestroyAsync(deleteParams);
+            var deleteParams = new DeletionParams(ExtractPublicId(imageUrl));
 
-            if (result.Error is not null)
-                throw new UnavailableException("Cloudinary");
+            await ExecuteAsync(() => _cloudinary.DestroyAsync(deleteParams), "delete");
         }
 
         // Converts JPEG/JPG/PNG uploads to WebP at upload time (smaller size, same visual quality).
@@ -99,6 +80,29 @@ namespace blog.Infrastructure.Services
 
             var folderAndFile = string.Join('/', afterUpload);
             return Path.ChangeExtension(folderAndFile, null);
+        }
+
+        private async Task<T> ExecuteAsync<T>(Func<Task<T>> operation, string operationName) where T : BaseResult
+        {
+            T result;
+
+            try
+            {
+                result = await operation();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Cloudinary {Operation} failed", operationName);
+                throw new UnavailableException("Cloudinary");
+            }
+
+            if (result.Error is not null)
+            {
+                logger.LogError("Cloudinary {Operation} failed. StatusCode: {StatusCode}, Message: {Message}", operationName, result.StatusCode, result.Error.Message);
+                throw new UnavailableException("Cloudinary");
+            }
+
+            return result;
         }
     }
 }
