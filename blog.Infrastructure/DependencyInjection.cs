@@ -57,11 +57,12 @@ public static class DependencyInjection
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IHasher, Hasher>();
-        services.AddScoped<IFileStorageService, CloudinaryService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
         services.AddScoped<IVerificationCodeGenerator, VerificationCodeGenerator>();
         services.AddScoped<IEmailService, EmailService>();
+
+        services.AddSingleton<IFileStorageService, CloudinaryService>();
 
         return services;
     }

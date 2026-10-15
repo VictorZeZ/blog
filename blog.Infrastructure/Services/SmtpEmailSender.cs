@@ -3,12 +3,13 @@ using blog.Domain.Common.Settings;
 using blog.Domain.Exceptions;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace blog.Infrastructure.Services
 {
-    public class SmtpEmailSender(IOptions<EmailSettings> settings) : IEmailSender
+    public class SmtpEmailSender(IOptions<EmailSettings> settings, ILogger<SmtpEmailSender> logger) : IEmailSender
     {
         private readonly EmailSettings _settings = settings.Value;
 
@@ -29,17 +30,15 @@ namespace blog.Infrastructure.Services
                 await client.AuthenticateAsync(_settings.SmtpUsername, _settings.SmtpPassword, ct);
                 await client.SendAsync(message, ct);
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                logger.LogError(ex, "Failed to send email with subject {Subject}", subject);
                 throw new UnavailableException("Email");
             }
-            //catch (Exception ex)
-            //{
-            //    throw new ArgumentException(nameof(ex));
-            //}
             finally
             {
-                await client.DisconnectAsync(true, ct);
+                if (client.IsConnected)
+                    await client.DisconnectAsync(true, CancellationToken.None);
             }
         }
     }
