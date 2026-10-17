@@ -1,13 +1,15 @@
 ﻿using blog.Domain.Common.Interfaces;
+using blog.Domain.Common.Settings;
 using blog.Domain.Exceptions;
 using blog.Domain.Tokens.Repository;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using MediatR;
+using Microsoft.Extensions.Options;
 
 namespace blog.Application.Users.Commands.RefreshToken
 {
-    public class RefreshTokenCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUserRepository userRepository, IHasher tokenHasher, IJwtService jwtService, IUnitOfWork unitOfWork) : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
+    public class RefreshTokenCommandHandler(IRefreshTokenRepository refreshTokenRepository, IUserRepository userRepository, IHasher tokenHasher, IJwtService jwtService, IOptions<JwtSettings> jwtSettings, IUnitOfWork unitOfWork) : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
     {
         public async Task<RefreshTokenResponse> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
         {
@@ -28,7 +30,7 @@ namespace blog.Application.Users.Commands.RefreshToken
 
             var newRefreshToken = jwtService.GenerateRefreshToken();
             var newRefreshTokenHash = tokenHasher.Hash(newRefreshToken);
-            var rotated = token.Rotate(newRefreshTokenHash, request.DeviceInfo);
+            var rotated = token.Rotate(newRefreshTokenHash, request.DeviceInfo, jwtSettings.Value.RefreshTokenExpiryDays);
 
             var accessToken = jwtService.GenerateAccessToken(user);
 

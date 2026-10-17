@@ -18,7 +18,7 @@ namespace blog.Domain.Tokens.Entities
 
         private RefreshToken() : base(RefreshTokenId.Empty) { }
 
-        public RefreshToken(string tokenHash, UserId userId, string deviceInfo, int expiryDays = 30) : base(RefreshTokenId.New())
+        public RefreshToken(string tokenHash, UserId userId, string deviceInfo, int expiryDays) : base(RefreshTokenId.New())
         {
             TokenHash = tokenHash;
             UserId = userId;
@@ -30,7 +30,7 @@ namespace blog.Domain.Tokens.Entities
         public bool IsValid()
             => Status == TokenStatus.Active && ExpiresAt > DateTime.UtcNow;
 
-        public RefreshToken Rotate(string newTokenHash, string deviceInfo, int expiryDays = 30)
+        public RefreshToken Rotate(string newTokenHash, string deviceInfo, int expiryDays)
         {
             Status = TokenStatus.Used;
             MarkAsUpdated();

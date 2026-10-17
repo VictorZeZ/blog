@@ -14,7 +14,7 @@ using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.ConfirmLogin
 {
-    public class ConfirmLoginCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IRefreshTokenRepository refreshTokenRepository, IHasher hasher, IJwtService jwtService, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<ConfirmLoginCommand, ConfirmLoginResponse>
+    public class ConfirmLoginCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IRefreshTokenRepository refreshTokenRepository, IHasher hasher, IJwtService jwtService, IOptions<EmailVerificationSettings> emailVerificationSettings, IOptions<JwtSettings> jwtSettings, IUnitOfWork unitOfWork) : IRequestHandler<ConfirmLoginCommand, ConfirmLoginResponse>
     {
         public async Task<ConfirmLoginResponse> Handle(ConfirmLoginCommand request, CancellationToken cancellationToken)
         {
@@ -51,7 +51,7 @@ namespace blog.Application.Users.Commands.ConfirmLogin
             var refreshToken = jwtService.GenerateRefreshToken();
             var refreshTokenHash = hasher.Hash(refreshToken);
 
-            var token = new RefreshTokenEntity(refreshTokenHash, user.Id, request.DeviceInfo);
+            var token = new RefreshTokenEntity(refreshTokenHash, user.Id, request.DeviceInfo, jwtSettings.Value.RefreshTokenExpiryDays);
 
             emailVerificationRepository.Update(verification);
             await refreshTokenRepository.AddAsync(token, cancellationToken);

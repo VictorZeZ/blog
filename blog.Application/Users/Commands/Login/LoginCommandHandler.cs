@@ -14,7 +14,7 @@ using RefreshTokenEntity = blog.Domain.Tokens.Entities.RefreshToken;
 
 namespace blog.Application.Users.Commands.Login
 {
-    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IEmailVerificationRepository emailVerificationRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IEmailService emailService, IOptions<AccountLockoutSettings> lockoutSettings, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
+    public class LoginCommandHandler(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IEmailVerificationRepository emailVerificationRepository, IPasswordHasher passwordHasher, IHasher tokenHasher, IJwtService jwtService, IEmailService emailService, IOptions<AccountLockoutSettings> lockoutSettings, IOptions<EmailVerificationSettings> emailVerificationSettings, IOptions<JwtSettings> jwtSettings, IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, LoginResponse>
     {
         public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
@@ -83,7 +83,8 @@ namespace blog.Application.Users.Commands.Login
             var token = new RefreshTokenEntity(
                 refreshTokenHash,
                 user.Id,
-                request.DeviceInfo);
+                request.DeviceInfo,
+                jwtSettings.Value.RefreshTokenExpiryDays);
 
             await refreshTokenRepository.AddAsync(token, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
