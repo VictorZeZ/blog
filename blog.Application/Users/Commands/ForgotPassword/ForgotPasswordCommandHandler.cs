@@ -19,10 +19,16 @@ namespace blog.Application.Users.Commands.ForgotPassword
             var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
             if (IsEligibleForReset(user))
             {
-                var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, cancellationToken);
+                var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
 
-                if (existingVerification is null || existingVerification.Purpose != EmailVerificationPurpose.ResetPassword)
+                if (existingVerification is null || !existingVerification.IsValid())
                 {
+                    if (existingVerification is not null)
+                    {
+                        existingVerification.Revoke();
+                        emailVerificationRepository.Update(existingVerification);
+                    }
+
                     var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.ResetPassword, cancellationToken);
 
                     var verification = new EmailVerification(user.Id, codeHash, EmailVerificationPurpose.ResetPassword, expiryMinutes);

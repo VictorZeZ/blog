@@ -19,8 +19,8 @@ namespace blog.Application.Users.Commands.ResetPassword
             if (user is null)
                 throw new NotFoundException("User", request.Email);
 
-            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
-            if (verification is null || verification.Purpose != EmailVerificationPurpose.ResetPassword)
+            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
+            if (verification is null)
                 throw new NotFoundException("EmailVerification", user.Id.Value);
 
             if (!verification.IsValid())

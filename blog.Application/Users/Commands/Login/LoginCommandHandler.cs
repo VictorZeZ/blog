@@ -50,9 +50,15 @@ namespace blog.Application.Users.Commands.Login
 
             if (user.TwoFactorEnabled)
             {
-                var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
-                if (existingVerification is not null && existingVerification.Purpose == EmailVerificationPurpose.LoginVerification)
-                    throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
+                var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.LoginVerification], cancellationToken);
+                if (existingVerification is not null)
+                {
+                    if (existingVerification.IsValid())
+                        throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
+
+                    existingVerification.Revoke();
+                    emailVerificationRepository.Update(existingVerification);
+                }
 
                 var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.LoginVerification);
                 var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.LoginVerification, cancellationToken);

@@ -23,8 +23,8 @@ namespace blog.Application.Users.Commands.ConfirmEmail
             if (user.IsEmailConfirmed)
                 throw new InvalidStateException("User", "Confirmed", "Unconfirmed");
 
-            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
-            if (verification is null || verification.Purpose != EmailVerificationPurpose.Registration)
+            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.Registration], cancellationToken);
+            if (verification is null)
                 throw new NotFoundException("EmailVerification", user.Id.Value);
 
             if (!verification.IsValid())
