@@ -17,7 +17,9 @@ namespace blog.Infrastructure.Repositories
             => await context.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
 
         public async Task<IEnumerable<RefreshToken>> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default)
-            => await context.RefreshTokens.Where(x => x.UserId == userId && x.Status == TokenStatus.Active).ToListAsync(ct);
+            => await context.RefreshTokens
+                .Where(x => x.UserId == userId && x.Status == TokenStatus.Active && x.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync(ct);
 
         public async Task AddAsync(RefreshToken token, CancellationToken ct = default)
             => await context.RefreshTokens.AddAsync(token, ct);
