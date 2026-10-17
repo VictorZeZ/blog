@@ -19,9 +19,9 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
             var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ResetPassword);
             if (IsEligibleForReset(user))
             {
-                var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, cancellationToken);
+                var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
 
-                if (verification is not null && verification.Purpose == EmailVerificationPurpose.ResetPassword && !verification.IsValid())
+                if (verification is not null && !verification.IsValid())
                 {
                     verification.Revoke();
                     emailVerificationRepository.Update(verification);

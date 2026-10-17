@@ -36,10 +36,15 @@ namespace blog.Application.Users.Commands.ChangeEmail
             if (emailTaken)
                 throw new AlreadyExistsException("User", request.NewEmail);
 
-            var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
-            if (existingVerification is not null &&
-                existingVerification.Purpose is EmailVerificationPurpose.ChangeEmail or EmailVerificationPurpose.ConfirmNewEmail)
-                throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
+            var existingVerification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.ChangeEmail, EmailVerificationPurpose.ConfirmNewEmail], cancellationToken);
+            if (existingVerification is not null)
+            {
+                if (existingVerification.IsValid())
+                    throw new AlreadyExistsException("EmailVerification", existingVerification.Id.Value);
+
+                existingVerification.Revoke();
+                emailVerificationRepository.Update(existingVerification);
+            }
 
             var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.ChangeEmail);
             var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.ChangeEmail, cancellationToken);

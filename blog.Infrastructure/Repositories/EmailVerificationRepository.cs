@@ -10,9 +10,11 @@ namespace blog.Infrastructure.Repositories
 {
     public class EmailVerificationRepository(AppDbContext context) : IEmailVerificationRepository
     {
-        public async Task<EmailVerification?> GetActiveByUserIdAsync(UserId userId, CancellationToken ct = default)
+        public async Task<EmailVerification?> GetActiveByUserIdAsync(UserId userId, IReadOnlyCollection<EmailVerificationPurpose> purposes, CancellationToken ct = default)
             => await context.EmailVerifications
-                .FirstOrDefaultAsync(x => x.UserId == userId && x.Status == EmailVerificationStatus.Active, ct);
+                .Where(x => x.UserId == userId && x.Status == EmailVerificationStatus.Active && purposes.Contains(x.Purpose))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(ct);
         public async Task<EmailVerification?> GetByIdAsync(EmailVerificationId verificationId, CancellationToken ct = default)
             => await context.EmailVerifications
                 .FirstOrDefaultAsync(x => x.Id == verificationId, ct);

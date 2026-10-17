@@ -20,8 +20,8 @@ namespace blog.Application.Users.Commands.ConfirmChangeEmail
             if (user is null)
                 throw new NotFoundException("User", request.UserId);
 
-            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, cancellationToken);
-            if (verification is null || verification.Purpose != EmailVerificationPurpose.ChangeEmail)
+            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.ChangeEmail], cancellationToken);
+            if (verification is null)
                 throw new NotFoundException("EmailVerification", user.Id.Value);
 
             if (!verification.IsValid())
