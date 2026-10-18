@@ -24,10 +24,7 @@ namespace blog.Application.Users.Commands.ConfirmEmail
                 throw new InvalidStateException("User", "Confirmed", "Unconfirmed");
 
             var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.Registration], cancellationToken);
-            if (verification is null)
-                throw new NotFoundException("EmailVerification", user.Id.Value);
-
-            if (!verification.IsValid())
+            if (verification is null || !verification.IsValid())
                 throw new ExpiredException("EmailVerification");
 
             var maxAttempts = emailVerificationSettings.Value.GetMaxAttempts(EmailVerificationPurpose.Registration);

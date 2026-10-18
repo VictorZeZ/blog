@@ -28,6 +28,6 @@ namespace blog.Infrastructure.Repositories
             => context.RefreshTokens.Update(token);
 
         public async Task DeleteExpiredAsync(CancellationToken ct = default)
-            => await context.RefreshTokens.Where(x => x.Status == TokenStatus.Expired || x.ExpiresAt < DateTime.UtcNow).ExecuteDeleteAsync(ct);
+            => await context.RefreshTokens.Where(x => x.ExpiresAt < DateTime.UtcNow).ExecuteDeleteAsync(ct);
     }
 }

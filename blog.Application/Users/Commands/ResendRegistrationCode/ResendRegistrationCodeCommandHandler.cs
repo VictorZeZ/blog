@@ -23,13 +23,13 @@ namespace blog.Application.Users.Commands.ResendRegistrationCode
                 throw new InvalidStateException("User", "Confirmed", "Unconfirmed");
 
             var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.Registration], cancellationToken);
-            if (verification is null)
-                throw new NotFoundException("EmailVerification", user.Id.Value);
-
-            if (!verification.IsValid())
+            if (verification is null || !verification.IsValid())
             {
-                verification.Revoke();
-                emailVerificationRepository.Update(verification);
+                if (verification is not null)
+                {
+                    verification.Revoke();
+                    emailVerificationRepository.Update(verification);
+                }
 
                 var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.Registration);
                 var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.Registration, cancellationToken);
