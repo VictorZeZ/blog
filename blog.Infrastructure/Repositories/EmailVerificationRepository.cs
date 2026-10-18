@@ -27,7 +27,7 @@ namespace blog.Infrastructure.Repositories
 
         public async Task DeleteExpiredAsync(CancellationToken ct = default)
             => await context.EmailVerifications
-                .Where(x => x.Status == EmailVerificationStatus.Expired || x.ExpiresAt < DateTime.UtcNow)
+                .Where(x => x.ExpiresAt < DateTime.UtcNow)
                 .ExecuteDeleteAsync(ct);
     }
 }

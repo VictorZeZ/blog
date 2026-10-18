@@ -64,6 +64,8 @@ public static class DependencyInjection
 
         services.AddSingleton<IFileStorageService, CloudinaryService>();
 
+        services.AddHostedService<ExpiredDataCleanupService>();
+
         return services;
     }
 }
