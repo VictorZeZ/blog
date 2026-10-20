@@ -21,10 +21,13 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
             {
                 var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user!.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
 
-                if (verification is not null && !verification.IsValid())
+                if (verification is null || !verification.IsValid())
                 {
-                    verification.Revoke();
-                    emailVerificationRepository.Update(verification);
+                    if (verification is not null)
+                    {
+                        verification.Revoke();
+                        emailVerificationRepository.Update(verification);
+                    }
 
                     var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.ResetPassword, cancellationToken);
 
@@ -34,8 +37,8 @@ namespace blog.Application.Users.Commands.ResendResetPasswordCode
                     await unitOfWork.SaveChangesAsync(cancellationToken);
                 }
 
-                // If a valid (non-expired) code already exists, or no ResetPassword flow is active at all,
-                // do nothing — never differentiate the response, to avoid leaking account/state information.
+                // If a valid (non-expired) code already exists, do nothing — never differentiate the response,
+                // to avoid leaking account/state information.
             }
 
             return new ResendResetPasswordCodeResponse

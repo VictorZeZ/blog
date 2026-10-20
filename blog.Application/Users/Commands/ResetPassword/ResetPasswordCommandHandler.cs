@@ -13,31 +13,32 @@ namespace blog.Application.Users.Commands.ResetPassword
 {
     public class ResetPasswordCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IRefreshTokenRepository refreshTokenRepository, IPasswordHasher passwordHasher, IHasher hasher, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<ResetPasswordCommand, ResetPasswordResponse>
     {
+        private const string InvalidCodeReason = "Invalid or expired verification code";
+
         public async Task<ResetPasswordResponse> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
         {
-            var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
-            if (user is null)
-                throw new NotFoundException("User", request.Email);
-
-            var verification = await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
-            if (verification is null)
-                throw new NotFoundException("EmailVerification", user.Id.Value);
-
-            if (!verification.IsValid())
-                throw new ExpiredException("EmailVerification");
-
             var maxAttempts = emailVerificationSettings.Value.GetMaxAttempts(EmailVerificationPurpose.ResetPassword);
-            if (verification.HasExceededAttempts(maxAttempts))
-                throw new LockedException("EmailVerification", verification.ExpiresAt);
+
+            var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            var verification = user is null
+                ? null
+                : await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.ResetPassword], cancellationToken);
+
+            if (user is null || verification is null || !verification.IsValid() || verification.HasExceededAttempts(maxAttempts))
+                throw new ValidationException("Code", InvalidCodeReason);
 
             var codeHash = hasher.Hash(request.Code.ToUpper());
             if (codeHash != verification.CodeHash)
             {
                 verification.RegisterFailedAttempt();
+
+                if (verification.HasExceededAttempts(maxAttempts))
+                    verification.Revoke();
+
                 emailVerificationRepository.Update(verification);
                 await unitOfWork.SaveChangesAsync(cancellationToken);
 
-                throw new ValidationException("Code", "Invalid verification code");
+                throw new ValidationException("Code", InvalidCodeReason);
             }
 
             verification.MarkAsVerified();
