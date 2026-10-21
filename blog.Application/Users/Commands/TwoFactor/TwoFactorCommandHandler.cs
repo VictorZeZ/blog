@@ -7,7 +7,7 @@ using MediatR;
 
 namespace blog.Application.Users.Commands.TwoFactor
 {
-    public class TwoFactorCommandHandler(IUserRepository userRepository, IUnitOfWork unitOfWork) : IRequestHandler<TwoFactorCommand, TwoFactorResponse>
+    public class TwoFactorCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher, IUnitOfWork unitOfWork) : IRequestHandler<TwoFactorCommand, TwoFactorResponse>
     {
         public async Task<TwoFactorResponse> Handle(TwoFactorCommand request, CancellationToken cancellationToken)
         {
@@ -17,6 +17,9 @@ namespace blog.Application.Users.Commands.TwoFactor
 
             user.EnsureActive();
             user.EnsureEmailConfirmed();
+
+            if (!request.TwoFactor && !passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+                throw new ValidationException("CurrentPassword", "Current password is incorrect");
 
             if (user.TwoFactorEnabled == request.TwoFactor)
                 throw new InvalidStateException(

@@ -8,6 +8,10 @@ namespace blog.Application.Users.Commands.TwoFactor
         {
             RuleFor(x => x.UserId)
                 .NotEmpty();
+
+            RuleFor(x => x.CurrentPassword)
+                .NotEmpty()
+                .When(x => !x.TwoFactor);
         }
     }
 }

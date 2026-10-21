@@ -61,12 +61,14 @@ namespace blog.Api.Controllers
             var command = new TwoFactorCommand
             {
                 UserId = CurrentUserId,
-                TwoFactor = request.TwoFactor
+                TwoFactor = request.TwoFactor,
+                CurrentPassword = request.CurrentPassword
             };
 
             var result = await Mediator.Send(command, ct);
             return Ok(result);
         }
+
         [HttpPost("me/change-email")]
         public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request, CancellationToken ct)
         {
