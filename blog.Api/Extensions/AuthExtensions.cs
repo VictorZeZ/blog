@@ -11,30 +11,32 @@ namespace blog.Api.Extensions
         public static IServiceCollection AddJwtAuthentication(
             this IServiceCollection services)
         {
-            var jwtSettings = services.BuildServiceProvider()
-                .GetRequiredService<IOptions<JwtSettings>>().Value;
-
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddJwtBearer(options =>
-            {
-                options.MapInboundClaims = false;
-                options.TokenValidationParameters = new TokenValidationParameters
+            .AddJwtBearer();
+
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtSettings>>((options, jwtSettings) =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings.Issuer,
-                    ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+                    var settings = jwtSettings.Value;
+
+                    options.MapInboundClaims = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = settings.Issuer,
+                        ValidAudience = settings.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(settings.SecretKey)),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
 
             services.AddAuthorization();
 
