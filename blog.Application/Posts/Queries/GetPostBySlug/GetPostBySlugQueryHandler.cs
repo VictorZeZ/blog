@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
+using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Extensions;
@@ -21,7 +22,7 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
 
             if (!isPublished)
             {
-                var canPreview = await CanPreviewUnpublishedAsync(request.ActorId, post.AuthorId, cancellationToken);
+                var canPreview = await CanPreviewUnpublishedAsync(request.ActorId, post, cancellationToken);
                 if (!canPreview)
                     throw new NotFoundException("Post", request.Slug);
             }
@@ -51,13 +52,13 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
             };
         }
 
-        private async Task<bool> CanPreviewUnpublishedAsync(Guid? actorId, UserId authorId, CancellationToken ct)
+        private async Task<bool> CanPreviewUnpublishedAsync(Guid? actorId, Post post, CancellationToken ct)
         {
             if (actorId is null)
                 return false;
 
             var actor = await userRepository.GetByIdAsync(new UserId(actorId.Value), ct);
-            return actor is not null && actor.CanManagePost(authorId);
+            return actor is not null && actor.CanManagePost(post);
         }
     }
 }

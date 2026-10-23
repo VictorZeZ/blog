@@ -1,4 +1,6 @@
 ﻿using blog.Domain.Exceptions;
+using blog.Domain.Posts.Entities;
+using blog.Domain.Posts.Enums;
 using blog.Domain.Users.Entities;
 using blog.Domain.Users.Enums;
 using blog.Domain.Users.Types;
@@ -37,7 +39,12 @@ namespace blog.Domain.Users.Extensions
         public static bool IsAuthorOrHigher(this User user)
             => user.Level >= UserLevel.Author;
 
-        public static bool CanManagePost(this User user, UserId postAuthorId)
-            => user.Id == postAuthorId || user.IsElevated();
+        public static bool CanAccessDraftsOf(this User user, UserId authorId)
+            => user.Id == authorId || user.IsOwner();
+
+        public static bool CanManagePost(this User user, Post post)
+            => post.Status == PostStatus.Draft
+                ? user.CanAccessDraftsOf(post.AuthorId)
+                : user.Id == post.AuthorId || user.IsElevated();
     }
 }

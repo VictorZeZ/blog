@@ -23,7 +23,7 @@ namespace blog.Application.Posts.Commands.DeletePost
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);
 
-            if (!actor.CanManagePost(post.AuthorId))
+            if (!actor.CanManagePost(post))
                 throw new ForbiddenException("delete_post");
 
             if (post.TitleImageUrl is not null)

@@ -28,7 +28,7 @@ namespace blog.Application.Posts.Commands.UpdatePost
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);
 
-            if (!actor.CanManagePost(post.AuthorId))
+            if (!actor.CanManagePost(post))
                 throw new ForbiddenException("update_post");
 
             var categoryId = new CategoryId(request.CategoryId);

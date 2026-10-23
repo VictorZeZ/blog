@@ -29,7 +29,7 @@ namespace blog.Application.Posts.Commands.UpdateDraft
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);
 
-            if (!actor.CanManagePost(post.AuthorId))
+            if (!actor.CanManagePost(post))
                 throw new ForbiddenException("update_draft");
 
             if (post.Status != PostStatus.Draft)

@@ -13,13 +13,15 @@ namespace blog.Application.Posts.Queries.GetPostsByAuthor
     {
         public async Task<PagedResult<PostSummaryResponse>> Handle(GetPostsByAuthorQuery request, CancellationToken cancellationToken)
         {
-            var publishedOnly = !await CanViewAllAsync(request.ActorId, new UserId(request.AuthorId), cancellationToken);
+            var authorId = new UserId(request.AuthorId);
+            var (publishedOnly, includeDrafts) = await ResolveVisibilityAsync(request.ActorId, authorId, cancellationToken);
 
             var result = await postRepository.GetByAuthorAsync(
                 request.Paging,
-                new UserId(request.AuthorId),
+                authorId,
                 request.SortBy,
                 publishedOnly,
+                includeDrafts,
                 cancellationToken);
 
             return new PagedResult<PostSummaryResponse>(
@@ -29,13 +31,19 @@ namespace blog.Application.Posts.Queries.GetPostsByAuthor
                 result.PageSize);
         }
 
-        private async Task<bool> CanViewAllAsync(Guid? actorId, UserId authorId, CancellationToken ct)
+        private async Task<(bool PublishedOnly, bool IncludeDrafts)> ResolveVisibilityAsync(Guid? actorId, UserId authorId, CancellationToken ct)
         {
             if (actorId is null)
-                return false;
+                return (true, false);
 
             var actor = await userRepository.GetByIdAsync(new UserId(actorId.Value), ct);
-            return actor is not null && actor.CanManagePost(authorId);
+            if (actor is null)
+                return (true, false);
+
+            var includeDrafts = actor.CanAccessDraftsOf(authorId);
+            var publishedOnly = !(includeDrafts || actor.IsElevated());
+
+            return (publishedOnly, includeDrafts);
         }
     }
 }

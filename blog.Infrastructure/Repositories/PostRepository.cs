@@ -61,7 +61,7 @@ namespace blog.Infrastructure.Repositories
             return await query.ToPagedResultAsync(paging, ct);
         }
 
-        public async Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, CancellationToken ct = default)
+        public async Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, bool includeDrafts = false, CancellationToken ct = default)
         {
             var query = context.Posts
                 .Include(x => x.Author)
@@ -70,6 +70,8 @@ namespace blog.Infrastructure.Repositories
 
             if (publishedOnly)
                 query = query.Where(x => x.Status == PostStatus.Published);
+            else if (!includeDrafts)
+                query = query.Where(x => x.Status != PostStatus.Draft);
 
             query = query.ApplySorting(sortBy);
 

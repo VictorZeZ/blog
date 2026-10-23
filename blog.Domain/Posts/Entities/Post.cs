@@ -76,14 +76,24 @@ namespace blog.Domain.Posts.Entities
 
         public void Approve()
         {
+            EnsureNotDraft();
+
             Status = PostStatus.Published;
             MarkAsUpdated();
         }
 
         public void Reject()
         {
+            EnsureNotDraft();
+
             Status = PostStatus.Rejected;
             MarkAsUpdated();
+        }
+
+        private void EnsureNotDraft()
+        {
+            if (Status == PostStatus.Draft)
+                throw new InvalidStateException("Post", Status.ToString(), "PendingApproval, Published or Rejected");
         }
 
         public void Update(string title, string summary, string? titleImageUrl, string content, List<string> tags, bool requiresReapproval, Category category)
