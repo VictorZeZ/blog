@@ -26,11 +26,11 @@ namespace blog.Application.Posts.Commands.DeletePost
             if (!actor.CanManagePost(post))
                 throw new ForbiddenException("delete_post");
 
-            if (post.TitleImageUrl is not null)
-                await fileStorageService.DeleteAsync(post.TitleImageUrl, cancellationToken);
-
             postRepository.Delete(post);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (post.TitleImageUrl is not null)
+                await fileStorageService.TryDeleteAsync(post.TitleImageUrl);
 
             return new DeletePostResponse { Success = true };
         }

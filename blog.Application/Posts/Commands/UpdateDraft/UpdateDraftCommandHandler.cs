@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
 using blog.Domain.Common.Enum;
+using blog.Domain.Common.Helpers;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Common;
@@ -48,14 +49,17 @@ namespace blog.Application.Posts.Commands.UpdateDraft
                     throw new AlreadyExistsException("Post", request.Title);
             }
 
-            var titleImageUrl = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
+            var (titleImageUrl, uploadedImageUrl, obsoleteImageUrl) = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
 
             // Status stays Draft regardless — Post.Update() only transitions Published -> PendingApproval,
             // so requiresReapproval has no effect here and is passed as false for clarity.
             post.Update(request.Title, request.Summary, titleImageUrl, request.Content, request.Tags, requiresReapproval: false, category);
 
             postRepository.Update(post);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesOrDiscardUploadAsync(fileStorageService, uploadedImageUrl, cancellationToken);
+
+            if (obsoleteImageUrl is not null)
+                await fileStorageService.TryDeleteAsync(obsoleteImageUrl);
 
             return new UpdateDraftResponse
             {
@@ -68,18 +72,13 @@ namespace blog.Application.Posts.Commands.UpdateDraft
             };
         }
 
-        private async Task<string?> ResolveTitleImageAsync(string? currentImageUrl, UpdateDraftCommand request, CancellationToken ct)
+        private async Task<(string? Url, string? UploadedUrl, string? ObsoleteUrl)> ResolveTitleImageAsync(string? currentImageUrl, UpdateDraftCommand request, CancellationToken ct)
         {
             if (request.RemoveTitleImage)
-            {
-                if (currentImageUrl is not null)
-                    await fileStorageService.DeleteAsync(currentImageUrl, ct);
-
-                return null;
-            }
+                return (null, null, currentImageUrl);
 
             if (request.TitleImageStream is null)
-                return currentImageUrl;
+                return (currentImageUrl, null, null);
 
             PostImageValidationRules.EnsureValid(
                 request.TitleImageFileName!,
@@ -90,10 +89,7 @@ namespace blog.Application.Posts.Commands.UpdateDraft
 
             var uploadedUrl = await fileStorageService.UploadAsync(request.TitleImageStream, request.TitleImageFileName!, StorageFolder.Posts, ct);
 
-            if (currentImageUrl is not null)
-                await fileStorageService.DeleteAsync(currentImageUrl, ct);
-
-            return uploadedUrl;
+            return (uploadedUrl, uploadedUrl, currentImageUrl);
         }
     }
 }

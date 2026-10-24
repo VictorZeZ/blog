@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
 using blog.Domain.Common.Enum;
+using blog.Domain.Common.Helpers;
 using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Common;
@@ -52,7 +53,7 @@ namespace blog.Application.Posts.Commands.CreatePost
                 category);
 
             await postRepository.AddAsync(post, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesOrDiscardUploadAsync(fileStorageService, titleImageUrl, cancellationToken);
 
             return new CreatePostResponse
             {

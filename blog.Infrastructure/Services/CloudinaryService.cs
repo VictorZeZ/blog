@@ -38,11 +38,18 @@ namespace blog.Infrastructure.Services
             return result.SecureUrl.ToString();
         }
 
-        public async Task DeleteAsync(string imageUrl, CancellationToken ct = default)
+        public async Task TryDeleteAsync(string imageUrl)
         {
-            var deleteParams = new DeletionParams(ExtractPublicId(imageUrl));
+            try
+            {
+                var deleteParams = new DeletionParams(ExtractPublicId(imageUrl));
 
-            await ExecuteAsync(() => _cloudinary.DestroyAsync(deleteParams), "delete");
+                await ExecuteAsync(() => _cloudinary.DestroyAsync(deleteParams), "delete");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to delete image {ImageUrl}", imageUrl);
+            }
         }
 
         // Converts JPEG/JPG/PNG uploads to WebP at upload time (smaller size, same visual quality).
