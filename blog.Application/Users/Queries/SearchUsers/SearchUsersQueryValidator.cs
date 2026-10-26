@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Common;
+using FluentValidation;
 
 namespace blog.Application.Users.Queries.SearchUsers
 {
@@ -10,11 +11,8 @@ namespace blog.Application.Users.Queries.SearchUsers
                 .NotEmpty()
                 .MaximumLength(256);
 
-            RuleFor(x => x.Paging.Page)
-                .GreaterThanOrEqualTo(1);
-
-            RuleFor(x => x.Paging.PageSize)
-                .GreaterThanOrEqualTo(1);
+            RuleFor(x => x.Paging)
+                .SetValidator(new PagedRequestValidator());
         }
     }
 }

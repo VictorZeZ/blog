@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using blog.Domain.Common;
+using FluentValidation;
 
 namespace blog.Application.Users.Queries.GetUsers
 {
@@ -9,11 +10,8 @@ namespace blog.Application.Users.Queries.GetUsers
             RuleFor(x => x.ActorId)
                 .NotEmpty();
 
-            RuleFor(x => x.Paging.Page)
-                .GreaterThanOrEqualTo(1);
-
-            RuleFor(x => x.Paging.PageSize)
-                .GreaterThanOrEqualTo(1);
+            RuleFor(x => x.Paging)
+                .SetValidator(new PagedRequestValidator());
 
             RuleFor(x => x.SortBy)
                 .IsInEnum();

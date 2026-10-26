@@ -27,15 +27,13 @@ namespace blog.Application.Posts.Commands.UpdatePost
                 .MaximumLength(256);
 
             RuleFor(x => x.Content)
-                .NotEmpty();
+                .ApplyContentRules();
 
             RuleFor(x => x.Tags)
-                .NotNull();
+                .ApplyTagListRules();
 
             RuleForEach(x => x.Tags)
-                .ApplyTagRules()
-                .NotEmpty()
-                .MaximumLength(50);
+                .ApplyTagRules();
 
             RuleFor(x => x.TitleImageFileName)
                 .NotEmpty()

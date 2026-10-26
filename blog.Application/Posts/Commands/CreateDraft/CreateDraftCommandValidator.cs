@@ -24,10 +24,10 @@ namespace blog.Application.Posts.Commands.CreateDraft
                 .MaximumLength(256);
 
             RuleFor(x => x.Content)
-                .NotEmpty();
+                .ApplyContentRules();
 
             RuleFor(x => x.Tags)
-                .NotNull();
+                .ApplyTagListRules();
 
             RuleForEach(x => x.Tags)
                 .ApplyTagRules();

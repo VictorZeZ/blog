@@ -1,4 +1,5 @@
-﻿using blog.Domain.Posts.Common;
+﻿using blog.Domain.Common;
+using blog.Domain.Posts.Common;
 using FluentValidation;
 
 namespace blog.Application.Posts.Queries.GetPostsByTag
@@ -17,8 +18,7 @@ namespace blog.Application.Posts.Queries.GetPostsByTag
             RuleForEach(x => x.Tags)
                 .ApplyTagRules();
 
-            RuleFor(x => x.Paging.Page).GreaterThanOrEqualTo(1);
-            RuleFor(x => x.Paging.PageSize).GreaterThanOrEqualTo(1);
+            RuleFor(x => x.Paging).SetValidator(new PagedRequestValidator());
             RuleFor(x => x.SortBy).IsInEnum();
             RuleFor(x => x.GroupingMode).IsInEnum();
         }
