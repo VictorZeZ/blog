@@ -1,5 +1,4 @@
-﻿using blog.Domain.Common.Interfaces;
-using blog.Domain.Exceptions;
+﻿using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
@@ -10,7 +9,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Queries.GetPostBySlug
 {
-    public class GetPostBySlugQueryHandler(IPostRepository postRepository, IUserRepository userRepository, IUnitOfWork unitOfWork) : IRequestHandler<GetPostBySlugQuery, GetPostBySlugResponse>
+    public class GetPostBySlugQueryHandler(IPostRepository postRepository, IUserRepository userRepository) : IRequestHandler<GetPostBySlugQuery, GetPostBySlugResponse>
     {
         public async Task<GetPostBySlugResponse> Handle(GetPostBySlugQuery request, CancellationToken cancellationToken)
         {
@@ -27,11 +26,11 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
                     throw new NotFoundException("Post", request.Slug);
             }
 
+            var viewCount = post.ViewCount;
             if (isPublished)
             {
-                post.IncrementView();
-                postRepository.Update(post);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+                await postRepository.IncrementViewCountAsync(post.Id, cancellationToken);
+                viewCount++;
             }
 
             return new GetPostBySlugResponse
@@ -43,7 +42,7 @@ namespace blog.Application.Posts.Queries.GetPostBySlug
                 Slug = post.Slug,
                 Tags = post.Tags,
                 Status = post.Status,
-                ViewCount = post.ViewCount,
+                ViewCount = viewCount,
                 AuthorId = post.AuthorId.Value,
                 AuthorFullName = post.Author.FullName,
                 CategoryName = post.Category.Name,

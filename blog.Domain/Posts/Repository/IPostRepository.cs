@@ -27,5 +27,6 @@ namespace blog.Domain.Posts.Repository
         Task AddAsync(Post post, CancellationToken ct = default);
         void Update(Post post);
         void Delete(Post post);
+        Task IncrementViewCountAsync(PostId id, CancellationToken ct = default);
     }
 }

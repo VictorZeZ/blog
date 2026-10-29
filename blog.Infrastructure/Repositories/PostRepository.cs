@@ -220,6 +220,11 @@ namespace blog.Infrastructure.Repositories
         public void Delete(Post post)
             => context.Posts.Remove(post);
 
+        public async Task IncrementViewCountAsync(PostId id, CancellationToken ct = default)
+            => await context.Posts
+        .Where(x => x.Id == id)
+        .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), ct);
+
         // Returns the index (in the caller-supplied tag list) of the first tag a post matches,
         // so a post matching multiple requested tags is grouped/interleaved under only one of them
         // — the earliest one in the input order — and never appears twice in the result.

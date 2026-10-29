@@ -117,10 +117,5 @@ namespace blog.Domain.Posts.Entities
 
         public static string GenerateSlug(string title)
             => SlugGenerator.Generate(title);
-
-        public void IncrementView()
-        {
-            ViewCount++;
-        }
     }
 }
