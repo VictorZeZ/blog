@@ -1,6 +1,5 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Posts.Common;
-using blog.Domain.Posts.Extensions;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
@@ -16,19 +15,13 @@ namespace blog.Application.Posts.Queries.GetPostsByAuthor
             var authorId = new UserId(request.AuthorId);
             var (publishedOnly, includeDrafts) = await ResolveVisibilityAsync(request.ActorId, authorId, cancellationToken);
 
-            var result = await postRepository.GetByAuthorAsync(
+            return await postRepository.GetByAuthorAsync(
                 request.Paging,
                 authorId,
                 request.SortBy,
                 publishedOnly,
                 includeDrafts,
                 cancellationToken);
-
-            return new PagedResult<PostSummaryResponse>(
-                result.Items.Select(p => p.ToSummaryResponse()),
-                result.TotalCount,
-                result.Page,
-                result.PageSize);
         }
 
         private async Task<(bool PublishedOnly, bool IncludeDrafts)> ResolveVisibilityAsync(Guid? actorId, UserId authorId, CancellationToken ct)

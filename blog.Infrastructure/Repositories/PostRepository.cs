@@ -22,16 +22,14 @@ namespace blog.Infrastructure.Repositories
 
         public async Task<Post?> GetBySlugAsync(string slug, CancellationToken ct = default)
             => await context.Posts
+                .AsNoTracking()
                 .Include(x => x.Author)
                 .Include(x => x.Category)
                 .FirstOrDefaultAsync(x => x.Slug == slug, ct);
 
-        public async Task<PagedResult<Post>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, CancellationToken ct = default)
+        public async Task<PagedResult<PostSummaryResponse>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, CancellationToken ct = default)
         {
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
-                .AsQueryable();
+            var query = context.Posts.AsQueryable();
 
             query = filter switch
             {
@@ -45,27 +43,17 @@ namespace blog.Infrastructure.Repositories
             if (!includeDrafts)
                 query = query.Where(x => x.Status != PostStatus.Draft);
 
-            query = query.ApplySorting(sortBy);
-
-            return await query.ToPagedResultAsync(paging, ct);
+            return await query.ToSummaryPagedResultAsync(paging, sortBy, ct);
         }
 
-        public async Task<PagedResult<Post>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
-        {
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
+        public async Task<PagedResult<PostSummaryResponse>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+            => await context.Posts
                 .Where(x => x.Status == PostStatus.Published)
-                .ApplySorting(sortBy);
+                .ToSummaryPagedResultAsync(paging, sortBy, ct);
 
-            return await query.ToPagedResultAsync(paging, ct);
-        }
-
-        public async Task<PagedResult<Post>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, bool includeDrafts = false, CancellationToken ct = default)
+        public async Task<PagedResult<PostSummaryResponse>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, bool includeDrafts = false, CancellationToken ct = default)
         {
             var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
                 .Where(x => x.AuthorId == authorId);
 
             if (publishedOnly)
@@ -73,78 +61,66 @@ namespace blog.Infrastructure.Repositories
             else if (!includeDrafts)
                 query = query.Where(x => x.Status != PostStatus.Draft);
 
-            query = query.ApplySorting(sortBy);
-
-            return await query.ToPagedResultAsync(paging, ct);
+            return await query.ToSummaryPagedResultAsync(paging, sortBy, ct);
         }
 
-        public async Task<PagedResult<Post>> GetPendingApprovalAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
-        {
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
+        public async Task<PagedResult<PostSummaryResponse>> GetPendingApprovalAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+            => await context.Posts
                 .Where(x => x.Status == PostStatus.PendingApproval)
-                .ApplySorting(sortBy);
+                .ToSummaryPagedResultAsync(paging, sortBy, ct);
 
-            return await query.ToPagedResultAsync(paging, ct);
-        }
-
-        public async Task<PagedResult<Post>> GetByTagAsync(PagedRequest paging, List<string> tags, PostSortBy sortBy = PostSortBy.Newest, PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
+        public async Task<PagedResult<PostSummaryResponse>> GetByTagAsync(PagedRequest paging, List<string> tags, PostSortBy sortBy = PostSortBy.Newest, PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default)
         {
             var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
-                .Where(x => x.Status == PostStatus.Published && tags.Any(t => x.Tags.Contains(t)))
-                .ApplySorting(sortBy);
+                .Where(x => x.Status == PostStatus.Published && tags.Any(t => x.Tags.Contains(t)));
 
             if (groupingMode == PostTagGroupingMode.None)
-                return await query.ToPagedResultAsync(paging, ct);
+                return await query.ToSummaryPagedResultAsync(paging, sortBy, ct);
 
             // Grouping/interleaving needs, per post, the index of the first requested tag it matches.
-            // That rank isn't practical to compute in SQL for an arbitrary-length tag list, so the
-            // DB does the filtering + sorting (using the existing GIN index), and the relatively small,
-            // already-narrowed result set is grouped/interleaved here in memory.
-            var matchingPosts = await query.ToListAsync(ct);
+            // That rank isn't practical to compute in SQL for an arbitrary-length tag list, so the DB
+            // does the filtering + sorting and returns only (Id, Tags) per match; the lightweight ids are
+            // ranked in memory and just the requested page is then loaded as summaries.
+            var matches = await query
+                .ApplySorting(sortBy)
+                .Select(x => new { x.Id, x.Tags })
+                .ToListAsync(ct);
 
-            var ranked = matchingPosts
-                .Select(post => (Post: post, TagIndex: GetFirstMatchingTagIndex(post.Tags, tags)))
+            var ranked = matches
+                .Select(match => (match.Id, TagIndex: GetFirstMatchingTagIndex(match.Tags, tags)))
                 .ToList();
 
-            var ordered = groupingMode == PostTagGroupingMode.Grouped
-                ? ranked.OrderBy(x => x.TagIndex).Select(x => x.Post).ToList()
+            var orderedIds = groupingMode == PostTagGroupingMode.Grouped
+                ? ranked.OrderBy(x => x.TagIndex).Select(x => x.Id).ToList()
                 : InterleaveByTag(ranked, tags.Count);
 
-            var totalCount = ordered.Count;
-            var items = ordered
+            var pageIds = orderedIds
                 .Skip((paging.Page - 1) * paging.PageSize)
                 .Take(paging.PageSize)
                 .ToList();
 
-            return new PagedResult<Post>(items, totalCount, paging.Page, paging.PageSize);
+            var summaries = await context.Posts
+                .Where(x => pageIds.Contains(x.Id))
+                .SelectSummary()
+                .ToListAsync(ct);
+
+            var items = pageIds
+                .Join(summaries, id => id.Value, summary => summary.Id, (_, summary) => summary)
+                .ToList();
+
+            return new PagedResult<PostSummaryResponse>(items, orderedIds.Count, paging.Page, paging.PageSize);
         }
 
-        public async Task<PagedResult<Post>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
-        {
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
+        public async Task<PagedResult<PostSummaryResponse>> GetByCategorySlugAsync(PagedRequest paging, string categorySlug, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+            => await context.Posts
                 .Where(x => x.Status == PostStatus.Published && x.Category.Slug == categorySlug)
-                .ApplySorting(sortBy);
+                .ToSummaryPagedResultAsync(paging, sortBy, ct);
 
-            return await query.ToPagedResultAsync(paging, ct);
-        }
-
-        public async Task<PagedResult<Post>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
-        {
-            var query = context.Posts
-                .Include(x => x.Author)
-                .Include(x => x.Category)
+        public async Task<PagedResult<PostSummaryResponse>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
+            => await context.Posts
                 .Where(x => x.Status == PostStatus.Published &&
                             x.SearchVector.Matches(EF.Functions.PlainToTsQuery("english", term)))
-                .ApplySorting(sortBy);
-
-            return await query.ToPagedResultAsync(paging, ct);
-        }
+                .ToSummaryPagedResultAsync(paging, sortBy, ct);
 
         public async Task<IReadOnlyList<PostStatusDailyCount>> GetDailyStatusReportAsync(DateOnly from, DateOnly to, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default)
         {
@@ -222,8 +198,8 @@ namespace blog.Infrastructure.Repositories
 
         public async Task IncrementViewCountAsync(PostId id, CancellationToken ct = default)
             => await context.Posts
-        .Where(x => x.Id == id)
-        .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), ct);
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), ct);
 
         // Returns the index (in the caller-supplied tag list) of the first tag a post matches,
         // so a post matching multiple requested tags is grouped/interleaved under only one of them
@@ -241,18 +217,17 @@ namespace blog.Infrastructure.Repositories
             return requestedTags.Count;
         }
 
-        // Round-robins posts across tag groups (one post from tag[0], then tag[1], ..., then back
+        // Round-robins post ids across tag groups (one from tag[0], then tag[1], ..., then back
         // to tag[0]), preserving each group's existing SortBy order and skipping exhausted groups.
-        private static List<Post> InterleaveByTag(List<(Post Post, int TagIndex)> ranked, int tagCount)
+        private static List<PostId> InterleaveByTag(List<(PostId Id, int TagIndex)> ranked, int tagCount)
         {
             var groups = Enumerable.Range(0, tagCount)
-                .Select(i => new Queue<Post>(ranked.Where(x => x.TagIndex == i).Select(x => x.Post)))
+                .Select(i => new Queue<PostId>(ranked.Where(x => x.TagIndex == i).Select(x => x.Id)))
                 .ToList();
 
-            var result = new List<Post>(ranked.Count);
-            var remaining = ranked.Count;
+            var result = new List<PostId>(ranked.Count);
 
-            while (remaining > 0)
+            while (groups.Exists(group => group.Count > 0))
             {
                 foreach (var group in groups)
                 {
@@ -260,7 +235,6 @@ namespace blog.Infrastructure.Repositories
                         continue;
 
                     result.Add(group.Dequeue());
-                    remaining--;
                 }
             }
 
