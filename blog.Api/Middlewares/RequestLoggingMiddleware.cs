@@ -20,9 +20,9 @@ namespace blog.Api.Middlewares
         private static readonly HashSet<string> SensitiveFields =
             new(StringComparer.OrdinalIgnoreCase)
             {
-                "password", "passwordHash", "token", "refreshToken",
-                "accessToken", "secret", "publicKey", "privateKey",
-                "cardNumber", "cvv", "ssn", "nationalId"
+                "password", "currentPassword", "newPassword", "passwordHash",
+                "code", "token", "refreshToken", "accessToken", "secret",
+                "publicKey", "privateKey", "cardNumber", "cvv", "ssn", "nationalId"
             };
 
         // ──────────────────────────────────────────────────────────────
@@ -48,13 +48,6 @@ namespace blog.Api.Middlewares
 
                 LogRequest(context, sw.ElapsedMilliseconds, correlationId,
                     requestBody, responseBody, requestNumber);
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                LogException(context, sw.ElapsedMilliseconds, correlationId,
-                    requestBody, ex, requestNumber);
-                throw;
             }
             finally
             {
@@ -388,7 +381,7 @@ namespace blog.Api.Middlewares
             switch (el.ValueKind)
             {
                 case JsonValueKind.Object:
-                    var dict = new Dictionary<string, object?>(el.GetArrayLength());
+                    var dict = new Dictionary<string, object?>();
                     foreach (var prop in el.EnumerateObject())
                     {
                         dict[prop.Name] = SensitiveFields.Contains(prop.Name)
