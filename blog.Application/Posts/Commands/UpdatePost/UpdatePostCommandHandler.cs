@@ -15,7 +15,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.UpdatePost
 {
-    public class UpdatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<UpdatePostCommand, UpdatePostResponse>
+    public class UpdatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IContentSanitizer contentSanitizer, IUnitOfWork unitOfWork) : IRequestHandler<UpdatePostCommand, UpdatePostResponse>
     {
         public async Task<UpdatePostResponse> Handle(UpdatePostCommand request, CancellationToken cancellationToken)
         {
@@ -45,11 +45,13 @@ namespace blog.Application.Posts.Commands.UpdatePost
                     throw new AlreadyExistsException("Post", request.Title);
             }
 
+            var content = contentSanitizer.Sanitize(request.Content);
+
             var (titleImageUrl, uploadedImageUrl, obsoleteImageUrl) = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
 
             var requiresReapproval = !actor.IsAuthorOrHigher();
 
-            post.Update(request.Title, request.Summary, titleImageUrl, request.Content, request.Tags, requiresReapproval, category);
+            post.Update(request.Title, request.Summary, titleImageUrl, content, request.Tags, requiresReapproval, category);
 
             postRepository.Update(post);
             await unitOfWork.SaveChangesOrDiscardUploadAsync(fileStorageService, uploadedImageUrl, cancellationToken);

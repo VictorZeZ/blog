@@ -16,7 +16,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.UpdateDraft
 {
-    public class UpdateDraftCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<UpdateDraftCommand, UpdateDraftResponse>
+    public class UpdateDraftCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IContentSanitizer contentSanitizer, IUnitOfWork unitOfWork) : IRequestHandler<UpdateDraftCommand, UpdateDraftResponse>
     {
         public async Task<UpdateDraftResponse> Handle(UpdateDraftCommand request, CancellationToken cancellationToken)
         {
@@ -49,11 +49,13 @@ namespace blog.Application.Posts.Commands.UpdateDraft
                     throw new AlreadyExistsException("Post", request.Title);
             }
 
+            var content = contentSanitizer.Sanitize(request.Content);
+
             var (titleImageUrl, uploadedImageUrl, obsoleteImageUrl) = await ResolveTitleImageAsync(post.TitleImageUrl, request, cancellationToken);
 
             // Status stays Draft regardless — Post.Update() only transitions Published -> PendingApproval,
             // so requiresReapproval has no effect here and is passed as false for clarity.
-            post.Update(request.Title, request.Summary, titleImageUrl, request.Content, request.Tags, requiresReapproval: false, category);
+            post.Update(request.Title, request.Summary, titleImageUrl, content, request.Tags, requiresReapproval: false, category);
 
             postRepository.Update(post);
             await unitOfWork.SaveChangesOrDiscardUploadAsync(fileStorageService, uploadedImageUrl, cancellationToken);

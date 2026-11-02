@@ -14,7 +14,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.CreatePost
 {
-    public class CreatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<CreatePostCommand, CreatePostResponse>
+    public class CreatePostCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IContentSanitizer contentSanitizer, IUnitOfWork unitOfWork) : IRequestHandler<CreatePostCommand, CreatePostResponse>
     {
         public async Task<CreatePostResponse> Handle(CreatePostCommand request, CancellationToken cancellationToken)
         {
@@ -34,6 +34,8 @@ namespace blog.Application.Posts.Commands.CreatePost
             if (slugTaken)
                 throw new AlreadyExistsException("Post", request.Title);
 
+            var content = contentSanitizer.Sanitize(request.Content);
+
             string? titleImageUrl = null;
             if (request.TitleImageStream is not null)
             {
@@ -47,7 +49,7 @@ namespace blog.Application.Posts.Commands.CreatePost
                 request.Title,
                 request.Summary,
                 titleImageUrl,
-                request.Content,
+                content,
                 request.Tags,
                 author,
                 category);

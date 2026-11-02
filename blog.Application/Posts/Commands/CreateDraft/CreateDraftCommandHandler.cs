@@ -14,7 +14,7 @@ using MediatR;
 
 namespace blog.Application.Posts.Commands.CreateDraft
 {
-    public class CreateDraftCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IUnitOfWork unitOfWork) : IRequestHandler<CreateDraftCommand, CreateDraftResponse>
+    public class CreateDraftCommandHandler(IUserRepository userRepository, IPostRepository postRepository, ICategoryRepository categoryRepository, IFileStorageService fileStorageService, IContentSanitizer contentSanitizer, IUnitOfWork unitOfWork) : IRequestHandler<CreateDraftCommand, CreateDraftResponse>
     {
         private const int MaxDraftsPerUser = 10;
 
@@ -40,6 +40,8 @@ namespace blog.Application.Posts.Commands.CreateDraft
             if (slugTaken)
                 throw new AlreadyExistsException("Post", request.Title);
 
+            var content = contentSanitizer.Sanitize(request.Content);
+
             string? titleImageUrl = null;
             if (request.TitleImageStream is not null)
             {
@@ -53,7 +55,7 @@ namespace blog.Application.Posts.Commands.CreateDraft
                 request.Title,
                 request.Summary,
                 titleImageUrl,
-                request.Content,
+                content,
                 request.Tags,
                 author,
                 category);

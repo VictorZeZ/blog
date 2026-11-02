@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
         services.AddScoped<IVerificationCodeGenerator, VerificationCodeGenerator>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddSingleton<IContentSanitizer, HtmlContentSanitizer>();
 
         services.AddSingleton<IFileStorageService, CloudinaryService>();
 
