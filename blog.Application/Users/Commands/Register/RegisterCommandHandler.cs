@@ -16,19 +16,37 @@ namespace blog.Application.Users.Commands.Register
     {
         public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
-            var exists = await userRepository.ExistsByEmailAsync(request.Email, cancellationToken);
-            if (exists)
+            var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            var pendingVerification = user is null
+                ? null
+                : await emailVerificationRepository.GetActiveByUserIdAsync(user.Id, [EmailVerificationPurpose.Registration], cancellationToken);
+
+            if (user is not null && !CanRestartRegistration(user, pendingVerification))
                 throw new AlreadyExistsException("User", request.Email);
 
             var passwordHash = passwordHasher.Hash(request.Password);
 
-            var user = new User(
-                request.Email,
-                request.FirstName,
-                request.LastName,
-                passwordHash);
+            if (user is null)
+            {
+                user = new User(
+                    request.Email,
+                    request.FirstName,
+                    request.LastName,
+                    passwordHash);
 
-            await userRepository.AddAsync(user, cancellationToken);
+                await userRepository.AddAsync(user, cancellationToken);
+            }
+            else
+            {
+                if (pendingVerification is not null)
+                {
+                    pendingVerification.Revoke();
+                    emailVerificationRepository.Update(pendingVerification);
+                }
+
+                user.RestartRegistration(request.FirstName, request.LastName, passwordHash);
+                userRepository.Update(user);
+            }
 
             var expiryMinutes = emailVerificationSettings.Value.GetExpiryMinutes(EmailVerificationPurpose.Registration);
             var codeHash = await emailService.SendVerificationCodeAsync(user.Email, EmailVerificationPurpose.Registration, cancellationToken);
@@ -45,5 +63,8 @@ namespace blog.Application.Users.Commands.Register
                 ExpiryMinutes = expiryMinutes
             };
         }
+
+        private static bool CanRestartRegistration(User user, EmailVerification? pendingVerification)
+            => user.IsAwaitingConfirmation() && (pendingVerification is null || !pendingVerification.IsValid());
     }
 }

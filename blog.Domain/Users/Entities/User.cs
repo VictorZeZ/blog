@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Common.Helpers;
+using blog.Domain.Exceptions;
 using blog.Domain.Posts.Entities;
 using blog.Domain.Tokens.Entities;
 using blog.Domain.Users.Enums;
@@ -99,6 +100,20 @@ namespace blog.Domain.Users.Entities
             IsEmailConfirmed = true;
             EmailConfirmedAt = DateTime.UtcNow;
             MarkAsUpdated();
+        }
+
+        public bool IsAwaitingConfirmation()
+            => !IsEmailConfirmed && !IsDeleted && !IsBanned;
+
+        public void RestartRegistration(string firstName, string lastName, string passwordHash)
+        {
+            if (!IsAwaitingConfirmation())
+                throw new InvalidStateException("User", IsEmailConfirmed ? "Confirmed" : "Deleted or banned", "Unconfirmed");
+
+            FirstName = firstName;
+            LastName = lastName;
+            PasswordHash = passwordHash;
+            ResetFailedLoginAttempts();
         }
 
         public void ChangeEmail(string newEmail)
