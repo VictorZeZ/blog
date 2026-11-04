@@ -1,11 +1,14 @@
-﻿using MediatR;
+﻿using blog.Domain.Common.Interfaces;
+using MediatR;
 
 namespace blog.Application.Users.Commands.ChangePassword
 {
-    public class ChangePasswordCommand : IRequest<ChangePasswordResponse>
+    public class ChangePasswordCommand : IRequest<ChangePasswordResponse>, IRequirePasswordConfirmation
     {
         public Guid UserId { get; init; }
         public string CurrentPassword { get; init; } = string.Empty;
         public string NewPassword { get; init; } = string.Empty;
+
+        public bool RequiresPasswordConfirmation => true;
     }
 }

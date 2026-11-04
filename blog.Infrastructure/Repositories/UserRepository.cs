@@ -192,6 +192,27 @@ namespace blog.Infrastructure.Repositories
             context.Users.Update(user);
         }
 
+        public async Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, int maxAttempts, TimeSpan lockoutDuration, CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+            DateTime? lockedUntil = now.Add(lockoutDuration);
+
+            var affected = await context.Users
+                .Where(x => x.Id == id && (x.LockedOutUntil == null || x.LockedOutUntil <= now))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.FailedLoginAttempts, x => x.FailedLoginAttempts + 1)
+                    .SetProperty(x => x.LockedOutUntil, x => x.FailedLoginAttempts + 1 >= maxAttempts ? lockedUntil : x.LockedOutUntil), ct);
+
+            if (affected == 1)
+                return null;
+
+            return await context.Users
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => x.LockedOutUntil)
+                .FirstOrDefaultAsync(ct);
+        }
+
 
         // Private
         private static IQueryable<User> ApplyActivityFilters(IQueryable<User> query, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled)

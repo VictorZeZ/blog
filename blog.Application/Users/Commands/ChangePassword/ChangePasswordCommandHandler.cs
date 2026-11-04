@@ -14,15 +14,11 @@ namespace blog.Application.Users.Commands.ChangePassword
         {
             var userId = new UserId(request.UserId);
 
-            var user = await userRepository.GetByIdAsync(new UserId(request.UserId), cancellationToken);
+            var user = await userRepository.GetByIdAsync(userId, cancellationToken);
             if (user is null)
                 throw new NotFoundException("User", request.UserId);
 
             user.EnsureActive();
-
-            var isCurrentPasswordValid = passwordHasher.Verify(request.CurrentPassword, user.PasswordHash);
-            if (!isCurrentPasswordValid)
-                throw new ValidationException("CurrentPassword", "Current password is incorrect");
 
             var newPasswordHash = passwordHasher.Hash(request.NewPassword);
             user.ChangePassword(newPasswordHash);

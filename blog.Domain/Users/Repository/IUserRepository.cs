@@ -22,5 +22,6 @@ namespace blog.Domain.Users.Repository
         Task AddAsync(User user, CancellationToken ct = default);
         void Update(User user);
         void SoftDelete(User user);
+        Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, int maxAttempts, TimeSpan lockoutDuration, CancellationToken ct = default);
     }
 }

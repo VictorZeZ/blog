@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace blog.Application.Users.Commands.ChangeEmail
 {
-    public class ChangeEmailCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IPasswordHasher passwordHasher, IEmailService emailService, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<ChangeEmailCommand, ChangeEmailResponse>
+    public class ChangeEmailCommandHandler(IUserRepository userRepository, IEmailVerificationRepository emailVerificationRepository, IEmailService emailService, IOptions<EmailVerificationSettings> emailVerificationSettings, IUnitOfWork unitOfWork) : IRequestHandler<ChangeEmailCommand, ChangeEmailResponse>
     {
         public async Task<ChangeEmailResponse> Handle(ChangeEmailCommand request, CancellationToken cancellationToken)
         {
@@ -24,10 +24,6 @@ namespace blog.Application.Users.Commands.ChangeEmail
 
             user.EnsureActive();
             user.EnsureEmailConfirmed();
-
-            var isPasswordValid = passwordHasher.Verify(request.CurrentPassword, user.PasswordHash);
-            if (!isPasswordValid)
-                throw new ValidationException("CurrentPassword", "Current password is incorrect");
 
             if (EmailNormalizer.Normalize(request.NewEmail) == user.Email)
                 throw new ValidationException("NewEmail", "New email must be different from the current email");
