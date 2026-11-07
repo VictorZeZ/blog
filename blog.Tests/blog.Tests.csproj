@@ -46,4 +46,8 @@
 		<Using Include="Xunit" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Unit\Application\" />
+	</ItemGroup>
+
 </Project>
