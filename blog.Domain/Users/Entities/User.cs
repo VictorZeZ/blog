@@ -20,6 +20,7 @@ namespace blog.Domain.Users.Entities
         public DateTime? BannedAt { get; private set; }
 
         public int FailedLoginAttempts { get; private set; }
+        public DateTime? LastFailedLoginAt { get; private set; }
         public DateTime? LockedOutUntil { get; private set; }
 
         public bool IsEmailConfirmed { get; private set; }
@@ -78,19 +79,10 @@ namespace blog.Domain.Users.Entities
         public bool IsLockedOut()
             => LockedOutUntil is not null && LockedOutUntil > DateTime.UtcNow;
 
-        public void RegisterFailedLoginAttempt(int maxFailedAttempts, TimeSpan lockoutDuration)
-        {
-            FailedLoginAttempts++;
-
-            if (FailedLoginAttempts >= maxFailedAttempts)
-                LockedOutUntil = DateTime.UtcNow.Add(lockoutDuration);
-
-            MarkAsUpdated();
-        }
-
         public void ResetFailedLoginAttempts()
         {
             FailedLoginAttempts = 0;
+            LastFailedLoginAt = null;
             LockedOutUntil = null;
             MarkAsUpdated();
         }

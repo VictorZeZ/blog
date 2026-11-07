@@ -9,5 +9,8 @@ namespace blog.Domain.Common.Settings
 
         [Range(1, int.MaxValue)]
         public int LockoutDurationMinutes { get; init; }
+
+        [Range(1, int.MaxValue)]
+        public int FailedAttemptWindowMinutes { get; init; }
     }
 }

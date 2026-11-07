@@ -20,8 +20,14 @@ namespace blog.Application.Users.Commands.Login
         {
             var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
-            if (user is not null && user.IsLockedOut())
-                throw new LockedException("User", user.LockedOutUntil!.Value);
+            if (user is not null)
+            {
+                user.EnsureNotLockedOut();
+
+                var lockedUntil = await userRepository.RegisterPasswordAttemptAsync(user.Id, lockoutSettings.Value, cancellationToken);
+                if (lockedUntil is not null)
+                    throw new LockedException("User", lockedUntil.Value);
+            }
 
             var isPasswordValid = user is not null && passwordHasher.Verify(request.Password, user.PasswordHash);
 
@@ -29,24 +35,14 @@ namespace blog.Application.Users.Commands.Login
                 passwordHasher.Hash(request.Password);
 
             if (user is null || !isPasswordValid)
-            {
-                if (user is not null)
-                {
-                    var settings = lockoutSettings.Value;
-                    user.RegisterFailedLoginAttempt(settings.MaxFailedAttempts, TimeSpan.FromMinutes(settings.LockoutDurationMinutes));
-
-                    userRepository.Update(user);
-                    await unitOfWork.SaveChangesAsync(cancellationToken);
-                }
-
                 throw new ValidationException("Credentials", "Invalid email or password");
-            }
-
-            user.EnsureEmailConfirmed();
-            user.EnsureActive();
 
             user.ResetFailedLoginAttempts();
             userRepository.Update(user);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            user.EnsureEmailConfirmed();
+            user.EnsureActive();
 
             if (user.TwoFactorEnabled)
             {

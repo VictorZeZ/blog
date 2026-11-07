@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Common.Enum;
+using blog.Domain.Common.Settings;
 using blog.Domain.Posts.Common;
 using blog.Domain.Users.Common;
 using blog.Domain.Users.Entities;
@@ -22,6 +23,6 @@ namespace blog.Domain.Users.Repository
         Task AddAsync(User user, CancellationToken ct = default);
         void Update(User user);
         void SoftDelete(User user);
-        Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, int maxAttempts, TimeSpan lockoutDuration, CancellationToken ct = default);
+        Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, AccountLockoutSettings settings, CancellationToken ct = default);
     }
 }

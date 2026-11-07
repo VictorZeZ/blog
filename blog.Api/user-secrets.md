@@ -269,7 +269,7 @@ The following settings ship with working defaults in `appsettings.json` / `appse
 
 | Section | Purpose |
 |---|---|
-| `AccountLockoutSettings` | `MaxFailedAttempts`, `LockoutDurationMinutes` — controls login lockout behavior. |
+| `AccountLockoutSettings` | `MaxFailedAttempts`, `LockoutDurationMinutes`, `FailedAttemptWindowMinutes` — controls account lockout for login and password-confirmation actions. |
 | `EmailVerificationSettings` | Expiry minutes and max attempts per OTP purpose (registration, login verification, change email, reset password, confirm new email). |
 | `Cors:AllowedOrigins` | Origins allowed to call the API from a browser. Empty by default. |
 

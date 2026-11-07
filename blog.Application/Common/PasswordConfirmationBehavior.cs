@@ -23,8 +23,7 @@ namespace blog.Application.Common
             user.EnsureActive();
             user.EnsureNotLockedOut();
 
-            var settings = lockoutSettings.Value;
-            var lockedUntil = await userRepository.RegisterPasswordAttemptAsync(user.Id, settings.MaxFailedAttempts, TimeSpan.FromMinutes(settings.LockoutDurationMinutes), cancellationToken);
+            var lockedUntil = await userRepository.RegisterPasswordAttemptAsync(user.Id, lockoutSettings.Value, cancellationToken);
             if (lockedUntil is not null)
                 throw new LockedException("User", lockedUntil.Value);
 

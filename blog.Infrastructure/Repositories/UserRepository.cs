@@ -1,6 +1,7 @@
 ﻿using blog.Domain.Common;
 using blog.Domain.Common.Enum;
 using blog.Domain.Common.Helpers;
+using blog.Domain.Common.Settings;
 using blog.Domain.Posts.Common;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Users.Common;
@@ -192,16 +193,20 @@ namespace blog.Infrastructure.Repositories
             context.Users.Update(user);
         }
 
-        public async Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, int maxAttempts, TimeSpan lockoutDuration, CancellationToken ct = default)
+        public async Task<DateTime?> RegisterPasswordAttemptAsync(UserId id, AccountLockoutSettings settings, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
-            DateTime? lockedUntil = now.Add(lockoutDuration);
+            var windowStart = now.AddMinutes(-settings.FailedAttemptWindowMinutes);
+            var maxAttempts = settings.MaxFailedAttempts;
+            DateTime? attemptedAt = now;
+            DateTime? lockedUntil = now.AddMinutes(settings.LockoutDurationMinutes);
 
             var affected = await context.Users
                 .Where(x => x.Id == id && (x.LockedOutUntil == null || x.LockedOutUntil <= now))
                 .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(x => x.FailedLoginAttempts, x => x.FailedLoginAttempts + 1)
-                    .SetProperty(x => x.LockedOutUntil, x => x.FailedLoginAttempts + 1 >= maxAttempts ? lockedUntil : x.LockedOutUntil), ct);
+                    .SetProperty(x => x.FailedLoginAttempts, x => x.LastFailedLoginAt > windowStart ? x.FailedLoginAttempts + 1 : 1)
+                    .SetProperty(x => x.LockedOutUntil, x => (x.LastFailedLoginAt > windowStart ? x.FailedLoginAttempts + 1 : 1) >= maxAttempts ? lockedUntil : x.LockedOutUntil)
+                    .SetProperty(x => x.LastFailedLoginAt, x => attemptedAt), ct);
 
             if (affected == 1)
                 return null;
@@ -212,7 +217,6 @@ namespace blog.Infrastructure.Repositories
                 .Select(x => x.LockedOutUntil)
                 .FirstOrDefaultAsync(ct);
         }
-
 
         // Private
         private static IQueryable<User> ApplyActivityFilters(IQueryable<User> query, TriStateFilter emailConfirmed, TriStateFilter twoFactorEnabled)
