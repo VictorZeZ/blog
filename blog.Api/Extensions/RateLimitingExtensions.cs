@@ -41,6 +41,7 @@ namespace blog.Api.Extensions
                     context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds.ToString();
 
                     var exception = new RateLimitException(context.HttpContext.Request.Path.Value ?? "unknown", retryAfterSeconds);
+                    context.HttpContext.Items[HttpContextItemKeys.HandledException] = exception;
 
                     await DomainExceptionResponseWriter.WriteAsync(context.HttpContext, exception);
                 };

@@ -25,10 +25,11 @@ builder.Services.AddOpenApiDocumentation();
 
 var app = builder.Build();
 
+app.UseRequestLogging();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseApiDocumentation();
-    app.UseRequestLogging();
 }
 else
 {

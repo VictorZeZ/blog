@@ -1,21 +1,38 @@
-﻿using System.Diagnostics;
+﻿using blog.Api.Common;
+using blog.Domain.Exceptions;
+using Microsoft.IdentityModel.JsonWebTokens;
+using System.Diagnostics;
+using System.Globalization;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace blog.Api.Middlewares
 {
-    public sealed class RequestLoggingMiddleware(
-        RequestDelegate next,
-        ILogger<RequestLoggingMiddleware> logger,
-        IWebHostEnvironment env)
+    public sealed partial class RequestLoggingMiddleware(RequestDelegate next, ILoggerFactory loggerFactory, IWebHostEnvironment env)
     {
-        // ──────────────────────────────────────────────────────────────
-        //  Constants
-        // ──────────────────────────────────────────────────────────────
-        private const int MaxBodyBytes = 64 * 1024; // 64 KB
+        private const int MaxBodyChars = 64 * 1024;
+        private const int MaxStringLength = 120;
+        private const int MaxArrayItems = 3;
+        private const int MaxLineLength = 800;
+        private const int MaxValueLength = 200;
+        private const int LabelWidth = 9;
+        private const string Indent = "   ";
+        private const string Redacted = "[REDACTED]";
 
-        // ── thread-safe request counter (resets on app restart) ───────
-        private static long _requestCounter;
+        private static readonly string ContinuationIndent = new(' ', Indent.Length + LabelWidth + 2);
+
+        private static readonly JsonSerializerOptions BodyJsonOptions = new()
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        private static readonly JsonSerializerOptions DetailsJsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         private static readonly HashSet<string> SensitiveFields =
             new(StringComparer.OrdinalIgnoreCase)
@@ -25,399 +42,526 @@ namespace blog.Api.Middlewares
                 "publicKey", "privateKey", "cardNumber", "cvv", "ssn", "nationalId"
             };
 
-        // ──────────────────────────────────────────────────────────────
-        //  Pipeline entry point
-        // ──────────────────────────────────────────────────────────────
+        private static long _requestCounter;
+
+        private readonly ILogger _logger = loggerFactory.CreateLogger("HTTP");
+
         public async Task InvokeAsync(HttpContext context)
         {
-            var sw = Stopwatch.StartNew();
-            var requestNumber = Interlocked.Increment(ref _requestCounter);
-            var correlationId = context.TraceIdentifier;
+            if (IsDocumentationRequest(context.Request.Path))
+            {
+                await next(context);
+                return;
+            }
 
-            var requestBody = await CaptureRequestBodyAsync(context);
-            var (responseBody, originalResponseBody, responseStream) =
-                await SetupResponseCaptureAsync(context);
+            var captureBodies = env.IsDevelopment() && _logger.IsEnabled(LogLevel.Debug);
+            var stopwatch = Stopwatch.StartNew();
+
+            var requestBody = captureBodies ? await ReadRequestBodyAsync(context.Request) : null;
+
+            var originalBody = context.Response.Body;
+            var capture = captureBodies ? new MemoryStream() : null;
+            if (capture is not null)
+                context.Response.Body = capture;
 
             try
             {
                 await next(context);
-                sw.Stop();
-
-                responseBody = await ReadCapturedResponseAsync(
-                    context, responseStream, responseBody);
-
-                LogRequest(context, sw.ElapsedMilliseconds, correlationId,
-                    requestBody, responseBody, requestNumber);
-            }
-            finally
-            {
-                context.Response.Body = originalResponseBody;
-
-                if (responseStream is not null)
-                {
-                    if (responseStream.CanSeek && responseStream.Position != 0)
-                        responseStream.Position = 0;
-
-                    await responseStream.CopyToAsync(originalResponseBody);
-                    await responseStream.DisposeAsync();
-                }
-            }
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Request capture
-        // ──────────────────────────────────────────────────────────────
-        private async Task<string> CaptureRequestBodyAsync(HttpContext context)
-        {
-            if (!env.IsDevelopment())
-                return "(skipped in production)";
-
-            if (!IsReadableBody(context.Request.ContentType, context.Request.ContentLength))
-                return "(binary or empty)";
-
-            context.Request.EnableBuffering();
-            var body = await ReadStreamSafeAsync(context.Request.Body);
-            context.Request.Body.Position = 0;
-            return body;
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Response capture setup
-        // ──────────────────────────────────────────────────────────────
-        private Task<(string responseBody, Stream originalBody, MemoryStream? captureStream)>
-            SetupResponseCaptureAsync(HttpContext context)
-        {
-            var originalBody = context.Response.Body;
-
-            if (!env.IsDevelopment())
-                return Task.FromResult<(string, Stream, MemoryStream?)>(
-                    ("(skipped in production)", originalBody, null));
-
-            var captureStream = new MemoryStream();
-            context.Response.Body = captureStream;
-
-            return Task.FromResult<(string, Stream, MemoryStream?)>(
-                ("(pending)", originalBody, captureStream));
-        }
-
-        private async Task<string> ReadCapturedResponseAsync(
-            HttpContext context, MemoryStream? captureStream, string fallback)
-        {
-            if (captureStream is null)
-                return fallback;
-
-            if (!IsReadableBody(context.Response.ContentType, context.Response.ContentLength))
-                return "(binary or empty)";
-
-            captureStream.Position = 0;
-            return await ReadStreamSafeAsync(captureStream);
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Structured log output — the pretty box format
-        // ──────────────────────────────────────────────────────────────
-        private void LogRequest(
-            HttpContext ctx,
-            long elapsedMs,
-            string correlationId,
-            string requestBody,
-            string responseBody,
-            long requestNumber)
-        {
-            var method = ctx.Request.Method;
-            var path = ctx.Request.Path + ctx.Request.QueryString;
-            var statusCode = ctx.Response.StatusCode;
-
-            // ── always-on summary line ────────────────────────────────
-            var logLevel = statusCode >= 500 ? LogLevel.Error
-                         : statusCode >= 400 ? LogLevel.Warning
-                         : LogLevel.Information;
-
-            logger.Log(logLevel,
-                "\n┌─ #{RequestNumber}  {Method} {Path}\n│  Status  : {StatusCode}  -  {ElapsedMs}ms\n│  CorrelId: {CorrelationId}\n└────────────────────────────────────────────",
-                requestNumber, method, path, statusCode, elapsedMs, correlationId);
-
-            // ── auth failures ─────────────────────────────────────────
-            if (statusCode is 401 or 403)
-            {
-                logger.LogWarning(
-                    "!! AUTH FAILURE [{StatusCode}] {Method} {Path}  CorrelationId={CorrelationId}",
-                    statusCode, method, path, correlationId);
-            }
-
-            // ── detailed debug block (Development only) ───────────────
-            if (!logger.IsEnabled(LogLevel.Debug) || !env.IsDevelopment())
-                return;
-
-            var reqHeaders = MaskHeaders(ctx.Request.Headers);
-            var respHeaders = MaskHeaders(ctx.Response.Headers);
-            var reqBody = MaskSensitiveBody(requestBody);
-            var respBody = MaskSensitiveBody(responseBody);
-
-            var sb = new StringBuilder();
-            sb.AppendLine("╔══════════════════════════════════════════════════════════════════");
-            sb.AppendLine($"║  #{requestNumber}  {method,-8} {path}");
-            sb.AppendLine("╠══════════════════════════════════════════════════════════════════");
-
-            sb.AppendLine("║  REQUEST HEADERS");
-            foreach (var (k, v) in reqHeaders)
-                sb.AppendLine($"║    {k,-30} {v}");
-
-            if (!string.IsNullOrWhiteSpace(reqBody))
-            {
-                sb.AppendLine("║  REQUEST BODY");
-                foreach (var line in Indent(reqBody))
-                    sb.AppendLine($"║    {line}");
-            }
-
-            sb.AppendLine("╠══════════════════════════════════════════════════════════════════");
-            sb.AppendLine($"║  RESPONSE  {statusCode}  {StatusEmoji(statusCode)}  →  {elapsedMs}ms");
-            sb.AppendLine("║  RESPONSE HEADERS");
-            foreach (var (k, v) in respHeaders)
-                sb.AppendLine($"║    {k,-30} {v}");
-
-            if (!string.IsNullOrWhiteSpace(respBody))
-            {
-                sb.AppendLine("║  RESPONSE BODY");
-                foreach (var line in Indent(respBody))
-                    sb.AppendLine($"║    {line}");
-            }
-
-            sb.AppendLine($"║  CorrelationId: {correlationId}");
-            sb.AppendLine("╚══════════════════════════════════════════════════════════════════");
-
-            logger.LogDebug("{HttpDetails}", sb.ToString());
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Exception log
-        // ──────────────────────────────────────────────────────────────
-        private void LogException(
-            HttpContext ctx,
-            long elapsedMs,
-            string correlationId,
-            string requestBody,
-            Exception ex,
-            long requestNumber)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("╔══════════════════════════════════════════════════════════════════");
-            sb.AppendLine($"║  #{requestNumber}  *** UNHANDLED EXCEPTION ***");
-            sb.AppendLine($"║  {ctx.Request.Method,-8} {ctx.Request.Path}{ctx.Request.QueryString}");
-            sb.AppendLine($"║  CorrelationId: {correlationId}  •  {elapsedMs}ms");
-            sb.AppendLine("╠══════════════════════════════════════════════════════════════════");
-            sb.AppendLine($"║  {ex.GetType().Name}: {ex.Message}");
-
-            if (ex.InnerException is not null)
-                sb.AppendLine($"║  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
-
-            if (env.IsDevelopment() && ex.StackTrace is not null)
-            {
-                sb.AppendLine("║  Stack Trace:");
-                foreach (var line in ex.StackTrace
-                    .Split('\n')
-                    .Take(10)
-                    .Select(l => l.TrimEnd()))
-                    sb.AppendLine($"║    {line}");
-            }
-
-            if (env.IsDevelopment())
-            {
-                var maskedReq = MaskSensitiveBody(requestBody);
-                sb.AppendLine("║  Request Body (at time of exception):");
-                foreach (var line in Indent(maskedReq))
-                    sb.AppendLine($"║    {line}");
-            }
-
-            sb.AppendLine("╚══════════════════════════════════════════════════════════════════");
-
-            logger.LogError(ex, "{ExceptionDetails}", sb.ToString());
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Body reading — fixed: no stream.Length on non-seekable streams
-        // ──────────────────────────────────────────────────────────────
-        private static async Task<string> ReadStreamSafeAsync(Stream stream)
-        {
-            try
-            {
-                if (stream.CanSeek)
-                    stream.Position = 0;
-
-                using var ms = new MemoryStream();
-                var buffer = new byte[4096];
-                int read;
-                int total = 0;
-
-                while ((read = await stream.ReadAsync(buffer)) > 0)
-                {
-                    var toWrite = Math.Min(read, MaxBodyBytes - total);
-                    ms.Write(buffer, 0, toWrite);
-                    total += toWrite;
-
-                    if (total >= MaxBodyBytes)
-                    {
-                        var truncated = Encoding.UTF8.GetString(ms.ToArray());
-                        return truncated + $"\n...(truncated at {MaxBodyBytes / 1024}KB)";
-                    }
-                }
-
-                var text = Encoding.UTF8.GetString(ms.ToArray());
-                return string.IsNullOrWhiteSpace(text) ? "(empty body)" : text;
             }
             catch (Exception ex)
             {
-                return $"(unreadable: {ex.GetType().Name})";
+                context.Items.TryAdd(HttpContextItemKeys.HandledException, ex);
+                throw;
             }
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Body filter — fixed: null ContentLength no longer skips
-        // ──────────────────────────────────────────────────────────────
-        private static bool IsReadableBody(string? contentType, long? contentLength)
-        {
-            // contentLength==null means Transfer-Encoding: chunked — still try to read
-            if (contentLength is not null and (0 or > MaxBodyBytes))
-                return false;
-
-            if (string.IsNullOrWhiteSpace(contentType))
-                return false;
-
-            var ct = contentType.ToLowerInvariant();
-
-            return !ct.Contains("image") &&
-                   !ct.Contains("audio") &&
-                   !ct.Contains("video") &&
-                   !ct.Contains("pdf") &&
-                   !ct.Contains("octet-stream") &&
-                   !ct.Contains("zip") &&
-                   !ct.Contains("binary");
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        //  Header masking
-        // ──────────────────────────────────────────────────────────────
-        private static IDictionary<string, string> MaskHeaders(IHeaderDictionary headers)
-        {
-            var result = new Dictionary<string, string>(
-                headers.Count, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var h in headers)
+            finally
             {
-                var val = string.Join(", ", h.Value.ToArray());
+                stopwatch.Stop();
 
-                result[h.Key] = h.Key switch
-                {
-                    var k when k.Equals("Authorization", StringComparison.OrdinalIgnoreCase) =>
-                        string.IsNullOrEmpty(val) ? "(empty)"
-                        : val.Split(' ', 2) is [var scheme, _]
-                            ? $"{scheme} [REDACTED]"
-                            : "[REDACTED]",
+                var responseBody = capture is null
+                    ? null
+                    : await RestoreResponseBodyAsync(context, originalBody, capture);
 
-                    var k when k.Equals("Cookie", StringComparison.OrdinalIgnoreCase) =>
-                        "[REDACTED]",
+                Log(context, stopwatch.ElapsedMilliseconds, requestBody, responseBody);
+            }
+        }
 
-                    var k when k.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) =>
-                        "[REDACTED]",
+        private void Log(HttpContext context, long elapsedMs, string? requestBody, string? responseBody)
+        {
+            var exception = context.Items.TryGetValue(HttpContextItemKeys.HandledException, out var item)
+                ? item as Exception
+                : null;
 
-                    _ => val.Length > 2048 ? val[..2048] + "...(truncated)" : val
-                };
+            var statusCode = exception is not null && context.Response.StatusCode < 400
+                ? StatusCodes.Status500InternalServerError
+                : context.Response.StatusCode;
+
+            var level = ResolveLevel(statusCode, exception);
+            var debug = _logger.IsEnabled(LogLevel.Debug);
+
+            if (!_logger.IsEnabled(level) || IsSuccessfulPreflight(context.Request, statusCode, debug))
+                return;
+
+            var development = env.IsDevelopment();
+            var trace = _logger.IsEnabled(LogLevel.Trace);
+
+            var block = new StringBuilder();
+            AppendHeaderLine(block, context, statusCode, exception, elapsedMs);
+
+            if (development && debug)
+                AppendField(block, "caller", DescribeCaller(context));
+
+            if (development && trace)
+            {
+                AppendField(block, "headers", DescribeHeaders(context.Request.Headers));
+                AppendField(block, "resp-hdrs", DescribeHeaders(context.Response.Headers));
             }
 
-            return result;
+            if (development && debug)
+            {
+                if (requestBody is not null)
+                    AppendField(block, "request", requestBody);
+
+                if (responseBody is not null)
+                    AppendField(block, "response", responseBody);
+            }
+
+            if (exception is not null)
+                AppendException(block, exception, development, debug);
+
+            _logger.Log(level, "{HttpRequest}", block.ToString());
         }
 
         // ──────────────────────────────────────────────────────────────
-        //  Body masking — fixed: handles non-JSON bodies gracefully
+        //  Block building
         // ──────────────────────────────────────────────────────────────
-        private static string MaskSensitiveBody(string body)
+        private static void AppendHeaderLine(StringBuilder block, HttpContext context, int statusCode, Exception? exception, long elapsedMs)
         {
-            if (string.IsNullOrWhiteSpace(body) ||
-                body.StartsWith('('))           // already a sentinel like "(empty body)"
-                return body;
+            var code = exception switch
+            {
+                DomainException domain => domain.ErrorCode,
+                not null => "UNKNOWN_ERROR",
+                _ => null
+            };
 
-            // Try JSON first
-            if (body.TrimStart() is ['{', ..] or ['[', ..])
+            block.Append('#').Append(Interlocked.Increment(ref _requestCounter))
+                .Append("  ").Append(statusCode);
+
+            if (code is not null)
+                block.Append(' ').Append(code);
+
+            block.Append("  ").Append(context.Request.Method)
+                .Append("  ").Append(context.Request.Path).Append(context.Request.QueryString.Value)
+                .Append("  ").Append(elapsedMs).Append(" ms")
+                .Append("  id=").Append(context.TraceIdentifier);
+
+            if (statusCode == CustomStatusCodes.ClientClosedRequest)
+                block.Append("  (client closed request)");
+        }
+
+        private static void AppendField(StringBuilder block, string label, string value)
+            => block.AppendLine().Append(Indent).Append(label.PadRight(LabelWidth)).Append("  ").Append(value);
+
+        private static void AppendContinuation(StringBuilder block, string text)
+            => block.AppendLine().Append(ContinuationIndent).Append(text);
+
+        private static void AppendMembers(StringBuilder block, IReadOnlyList<(string Key, string Value)> members)
+        {
+            if (members.Count == 0)
+                return;
+
+            var width = members.Max(m => m.Key.Length) + 3;
+            foreach (var (key, value) in members)
+                AppendContinuation(block, key.PadRight(width) + Clean(value, MaxValueLength));
+        }
+
+        private static void AppendException(StringBuilder block, Exception exception, bool development, bool debug)
+        {
+            AppendField(block, "exception", exception.GetType().Name);
+            AppendMembers(block, BuildExceptionMembers(exception, development));
+
+            if (!debug)
+                return;
+
+            AppendStack(block, exception);
+
+            for (var inner = exception.InnerException; inner is not null; inner = inner.InnerException)
+            {
+                var members = new List<(string Key, string Value)> { ("message", FirstLine(inner.Message)) };
+                if (FindOrigin(inner) is { } origin)
+                    members.Add(("thrown", origin));
+
+                AppendField(block, "caused by", inner.GetType().Name);
+                AppendMembers(block, members);
+            }
+        }
+
+        private static List<(string Key, string Value)> BuildExceptionMembers(Exception exception, bool development)
+        {
+            var members = new List<(string Key, string Value)>();
+
+            if (exception is DomainException domain)
+            {
+                members.Add(("code", domain.ErrorCode));
+                members.Add(("status", domain.StatusCode.ToString(CultureInfo.InvariantCulture)));
+
+                if (development)
+                {
+                    members.Add(("title", domain.Title));
+                    members.AddRange(FlattenDetails(domain.Details));
+                }
+            }
+            else if (development)
+            {
+                members.Add(("message", FirstLine(exception.Message)));
+            }
+
+            if ((development || exception is not DomainException) && FindOrigin(exception) is { } origin)
+                members.Add(("thrown", origin));
+
+            return members;
+        }
+
+        private static IEnumerable<(string Key, string Value)> FlattenDetails(object? details)
+        {
+            if (details is null)
+                yield break;
+
+            var element = JsonSerializer.SerializeToElement(details, DetailsJsonOptions);
+            if (element.ValueKind != JsonValueKind.Object)
+                yield break;
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Name == "errors" && property.Value.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var error in property.Value.EnumerateArray())
+                        yield return (ReadString(error, "field"), ReadString(error, "reason"));
+
+                    continue;
+                }
+
+                yield return (property.Name, DescribeJson(property.Value));
+            }
+        }
+
+        private static string ReadString(JsonElement element, string name)
+            => element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value)
+                ? DescribeJson(value)
+                : string.Empty;
+
+        private static string DescribeJson(JsonElement element) => element.ValueKind switch
+        {
+            JsonValueKind.String => FormatTimestamp(element.GetString() ?? string.Empty),
+            JsonValueKind.Array => string.Join(", ", element.EnumerateArray().Select(DescribeJson)),
+            JsonValueKind.Null => "null",
+            _ => element.GetRawText()
+        };
+
+        private static string FormatTimestamp(string value)
+            => value.Length >= 19 && value[4] == '-' && value[10] == 'T'
+               && DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var timestamp)
+                ? timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss'Z'", CultureInfo.InvariantCulture)
+                : value;
+
+        // ──────────────────────────────────────────────────────────────
+        //  Stack traces
+        // ──────────────────────────────────────────────────────────────
+        [GeneratedRegex(@"^at\s+(?<method>blog\.[^\s(]+)\(.*?\)(?: in (?<file>.+?):line (?<line>\d+))?$")]
+        private static partial Regex ProjectFrame();
+
+        private static IEnumerable<string> StackLines(Exception exception)
+            => (exception.StackTrace ?? string.Empty)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        private static string? FindOrigin(Exception exception)
+        {
+            foreach (var line in StackLines(exception))
+            {
+                var match = ProjectFrame().Match(line);
+                if (match.Success)
+                    return FormatFrame(match);
+            }
+
+            return null;
+        }
+
+        private static string FormatFrame(Match match)
+        {
+            var parts = match.Groups["method"].Value.Replace("..", ".").Split('.');
+            var method = parts[^1];
+            var type = parts.Length > 1 ? parts[^2].Split('`')[0] : string.Empty;
+
+            var location = match.Groups["file"].Success
+                ? $" ({Path.GetFileName(match.Groups["file"].Value)}:{match.Groups["line"].Value})"
+                : string.Empty;
+
+            return $"{type}.{method}{location}";
+        }
+
+        private static void AppendStack(StringBuilder block, Exception exception)
+        {
+            var lines = new List<string>();
+            var skipped = 0;
+
+            foreach (var line in StackLines(exception))
+            {
+                var match = ProjectFrame().Match(line);
+                if (!match.Success)
+                {
+                    if (line.StartsWith("at ", StringComparison.Ordinal))
+                        skipped++;
+
+                    continue;
+                }
+
+                FlushSkippedFrames(lines, ref skipped);
+                lines.Add($"at {FormatFrame(match)}");
+            }
+
+            FlushSkippedFrames(lines, ref skipped);
+
+            if (lines.Count == 0)
+                return;
+
+            AppendField(block, "stack", lines[0]);
+            foreach (var line in lines.Skip(1))
+                AppendContinuation(block, line);
+        }
+
+        private static void FlushSkippedFrames(List<string> lines, ref int skipped)
+        {
+            if (skipped == 0)
+                return;
+
+            lines.Add($"… {skipped} framework frames");
+            skipped = 0;
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        //  Level, caller, headers
+        // ──────────────────────────────────────────────────────────────
+        private static LogLevel ResolveLevel(int statusCode, Exception? exception) => exception switch
+        {
+            DomainException { ErrorCode: "LOCKED" or "FORBIDDEN" or "UNAUTHORIZED" or "RATE_LIMIT_EXCEEDED" } => LogLevel.Warning,
+            DomainException { ErrorCode: "UNAVAILABLE" or "UNKNOWN_ERROR" } => LogLevel.Error,
+            DomainException => LogLevel.Information,
+            not null => LogLevel.Error,
+            _ => statusCode switch
+            {
+                401 or 403 or 429 => LogLevel.Warning,
+                >= 500 => LogLevel.Error,
+                _ => LogLevel.Information
+            }
+        };
+
+        private static string DescribeCaller(HttpContext context)
+        {
+            var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var userId = context.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (userId is null)
+                return $"anonymous · {address}";
+
+            var role = context.User.FindFirstValue(ClaimTypes.Role) ?? "unknown";
+            var shortId = userId.Length > 12 ? $"{userId[..4]}…{userId[^4..]}" : userId;
+
+            return $"{shortId} · {role} · {address}";
+        }
+
+        private static string DescribeHeaders(IHeaderDictionary headers)
+            => string.Join(" | ", headers.Select(h => $"{h.Key}: {MaskHeader(h.Key, h.Value.ToString())}"));
+
+        private static string MaskHeader(string name, string value)
+        {
+            if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+                return value.Split(' ', 2) is [var scheme, _] ? $"{scheme} {Redacted}" : Redacted;
+
+            if (name.Equals("Cookie", StringComparison.OrdinalIgnoreCase) || name.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+                return Redacted;
+
+            return value;
+        }
+
+        private static bool IsDocumentationRequest(PathString path)
+            => path.StartsWithSegments("/scalar") || path.StartsWithSegments("/openapi");
+
+        private static bool IsSuccessfulPreflight(HttpRequest request, int statusCode, bool debug)
+            => HttpMethods.IsOptions(request.Method) && statusCode < 400 && !debug;
+
+        // ──────────────────────────────────────────────────────────────
+        //  Body capture
+        // ──────────────────────────────────────────────────────────────
+        private static async Task<string?> ReadRequestBodyAsync(HttpRequest request)
+        {
+            var contentType = request.ContentType;
+            if (request.ContentLength == 0 || string.IsNullOrWhiteSpace(contentType))
+                return null;
+
+            if (!IsTextBody(contentType) || request.ContentLength > MaxBodyChars)
+                return DescribeBinary(contentType, request.ContentLength);
+
+            request.EnableBuffering();
+            var body = await ReadTextAsync(request.Body);
+            request.Body.Position = 0;
+
+            return FormatBody(contentType, body);
+        }
+
+        private static async Task<string?> RestoreResponseBodyAsync(HttpContext context, Stream originalBody, MemoryStream capture)
+        {
+            context.Response.Body = originalBody;
+
+            var description = DescribeResponse(context.Response.ContentType, capture);
+
+            try
+            {
+                capture.Position = 0;
+                await capture.CopyToAsync(originalBody);
+            }
+            catch (Exception ex) when (ex is IOException or OperationCanceledException)
+            {
+                return description;
+            }
+            finally
+            {
+                await capture.DisposeAsync();
+            }
+
+            return description;
+        }
+
+        private static string? DescribeResponse(string? contentType, MemoryStream capture)
+        {
+            if (capture.Length == 0 || string.IsNullOrWhiteSpace(contentType))
+                return null;
+
+            if (!IsTextBody(contentType) || capture.Length > MaxBodyChars)
+                return DescribeBinary(contentType, capture.Length);
+
+            return FormatBody(contentType, Encoding.UTF8.GetString(capture.GetBuffer(), 0, (int)capture.Length));
+        }
+
+        private static async Task<string> ReadTextAsync(Stream stream)
+        {
+            try
+            {
+                using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+                var buffer = new char[MaxBodyChars];
+                var read = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
+
+                return new string(buffer, 0, read);
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        private static bool IsTextBody(string contentType)
+            => contentType.Contains("json", StringComparison.OrdinalIgnoreCase)
+               || contentType.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
+               || contentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase);
+
+        private static string DescribeBinary(string contentType, long? length)
+        {
+            var mediaType = contentType.Split(';')[0].Trim();
+            return length is null ? $"({mediaType})" : $"({mediaType}, {FormatSize(length.Value)})";
+        }
+
+        private static string FormatSize(long bytes) => bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{(bytes / 1024d).ToString("0.#", CultureInfo.InvariantCulture)} KB",
+            _ => $"{(bytes / (1024d * 1024d)).ToString("0.#", CultureInfo.InvariantCulture)} MB"
+        };
+
+        private static string? FormatBody(string contentType, string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+
+            if (contentType.Contains("json", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(body);
-                    var masked = MaskJsonElement(doc.RootElement);
-                    return JsonSerializer.Serialize(masked, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
+                    using var document = JsonDocument.Parse(body);
+                    return Clean(JsonSerializer.Serialize(MaskJson(document.RootElement), BodyJsonOptions), MaxLineLength);
                 }
-                catch
+                catch (JsonException)
                 {
-                    // fall through to plain text
+                    return $"(invalid JSON, {Count(body.Length)} chars)";
                 }
             }
 
-            // Form-encoded body: mask sensitive keys
-            if (body.Contains('=') && body.Contains('&'))
-            {
-                var parts = body.Split('&');
-                var masked = parts.Select(part =>
-                {
-                    var eq = part.IndexOf('=');
-                    if (eq < 0) return part;
-                    var key = Uri.UnescapeDataString(part[..eq]);
-                    return SensitiveFields.Contains(key)
-                        ? $"{key}=[REDACTED]"
-                        : part;
-                });
-                return string.Join("&", masked);
-            }
-
-            // Plain text / XML / other: return as-is (truncated if huge)
-            return body.Length > 2000
-                ? body[..2000] + "...(display truncated)"
-                : body;
+            return contentType.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
+                ? Clean(MaskForm(body), MaxLineLength)
+                : Clean(body, MaxLineLength);
         }
 
-        private static object? MaskJsonElement(JsonElement el)
+        private static object? MaskJson(JsonElement element)
         {
-            switch (el.ValueKind)
+            switch (element.ValueKind)
             {
                 case JsonValueKind.Object:
-                    var dict = new Dictionary<string, object?>();
-                    foreach (var prop in el.EnumerateObject())
-                    {
-                        dict[prop.Name] = SensitiveFields.Contains(prop.Name)
-                            ? "[REDACTED]"
-                            : MaskJsonElement(prop.Value);
-                    }
-                    return dict;
+                    var properties = new Dictionary<string, object?>();
+                    foreach (var property in element.EnumerateObject())
+                        properties[property.Name] = SensitiveFields.Contains(property.Name) ? Redacted : MaskJson(property.Value);
+                    return properties;
 
                 case JsonValueKind.Array:
-                    return el.EnumerateArray().Select(MaskJsonElement).ToList();
+                    var items = element.EnumerateArray().Take(MaxArrayItems).Select(MaskJson).ToList();
+                    var total = element.GetArrayLength();
+                    if (total > MaxArrayItems)
+                        items.Add($"…(+{total - MaxArrayItems} more)");
+                    return items;
+
+                case JsonValueKind.String:
+                    var text = element.GetString() ?? string.Empty;
+                    return text.Length > MaxStringLength ? $"<{Count(text.Length)} chars>" : text;
 
                 case JsonValueKind.Number:
-                    return el.TryGetInt64(out var l) ? (object)l : el.GetDouble();
+                    return element.TryGetInt64(out var integer) ? integer : (object)element.GetDouble();
 
-                case JsonValueKind.True: return true;
-                case JsonValueKind.False: return false;
-                case JsonValueKind.Null: return null;
+                case JsonValueKind.True:
+                    return true;
+
+                case JsonValueKind.False:
+                    return false;
 
                 default:
-                    return el.GetString();
+                    return null;
             }
         }
 
-        // ──────────────────────────────────────────────────────────────
-        //  Helpers
-        // ──────────────────────────────────────────────────────────────
-        private static IEnumerable<string> Indent(string text) =>
-            text.Split('\n').Select(l => l.TrimEnd());
-
-        private static string StatusEmoji(int code) => code switch
+        private static string MaskForm(string body)
         {
-            >= 500 => "[ERR]",
-            >= 400 => "[WRN]",
-            >= 300 => "[RDR]",
-            >= 200 => "[OK]",
-            _ => "[???]"
-        };
+            var pairs = body.Split('&').Select(pair =>
+            {
+                var separator = pair.IndexOf('=');
+                if (separator < 0)
+                    return pair;
+
+                var key = Uri.UnescapeDataString(pair[..separator]);
+                return SensitiveFields.Contains(key) ? $"{key}={Redacted}" : pair;
+            });
+
+            return string.Join('&', pairs);
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        //  Text helpers
+        // ──────────────────────────────────────────────────────────────
+        private static string FirstLine(string message)
+            => message.ReplaceLineEndings("\n").Split('\n')[0];
+
+        private static string Clean(string value, int maxLength)
+        {
+            var text = value.ReplaceLineEndings(" ");
+            return text.Length <= maxLength
+                ? text
+                : $"{text[..maxLength]}… (+{Count(text.Length - maxLength)} chars)";
+        }
+
+        private static string Count(int value)
+            => value.ToString("N0", CultureInfo.InvariantCulture);
     }
 }
