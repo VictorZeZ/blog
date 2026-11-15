@@ -126,7 +126,7 @@ namespace blog.Infrastructure.Repositories
                     g.Count(x => x.IsDeleted),
                     g.Count(x => x.IsEmailConfirmed),
                     g.Count(x => x.TwoFactorEnabled)))
-                .FirstOrDefaultAsync(ct);
+                .SingleOrDefaultAsync(ct);
 
             return counts ?? new UserOverviewCounts(0, 0, 0, 0, 0, 0, 0, 0, 0);
         }

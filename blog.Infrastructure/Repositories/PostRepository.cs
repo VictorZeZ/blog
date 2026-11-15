@@ -182,7 +182,7 @@ namespace blog.Infrastructure.Repositories
                     g.Count(x => x.Status == PostStatus.Published),
                     g.Count(x => x.Status == PostStatus.Rejected),
                     g.Sum(x => x.Status == PostStatus.Published ? x.ViewCount : 0)))
-                .FirstOrDefaultAsync(ct);
+                .SingleOrDefaultAsync(ct);
 
             return counts ?? new PostOverviewCounts(0, 0, 0, 0, 0);
         }

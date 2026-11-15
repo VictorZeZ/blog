@@ -38,7 +38,7 @@ namespace blog.Infrastructure.Repositories
                 .Select(g => new CategoryOverviewCounts(
                     g.Count(x => !x.IsDeleted),
                     g.Count(x => x.IsDeleted)))
-                .FirstOrDefaultAsync(ct);
+                .SingleOrDefaultAsync(ct);
 
             return counts ?? new CategoryOverviewCounts(0, 0);
         }
