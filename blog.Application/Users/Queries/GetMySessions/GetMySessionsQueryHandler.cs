@@ -11,11 +11,14 @@ namespace blog.Application.Users.Queries.GetMySessions
             var tokens = await refreshTokenRepository.GetActiveByUserIdAsync(new UserId(request.ActorId), cancellationToken);
 
             return tokens
+                .GroupBy(t => t.SessionId)
+                .Select(g => g.OrderByDescending(t => t.CreatedAt).First())
                 .OrderByDescending(t => t.CreatedAt)
                 .Select(t => new GetMySessionsResponse
                 {
-                    Id = t.Id.Value,
+                    Id = t.SessionId.Value,
                     DeviceInfo = t.DeviceInfo,
+                    IsCurrent = t.SessionId.Value == request.CurrentSessionId,
                     CreatedAt = t.CreatedAt,
                     ExpiresAt = t.ExpiresAt
                 })

@@ -47,11 +47,12 @@ namespace blog.Application.Users.Commands.ConfirmLogin
 
             verification.MarkAsVerified();
 
-            var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();
             var refreshTokenHash = hasher.Hash(refreshToken);
 
             var token = new RefreshTokenEntity(refreshTokenHash, user.Id, request.DeviceInfo, jwtSettings.Value.RefreshTokenExpiryDays);
+
+            var accessToken = jwtService.GenerateAccessToken(user, token.SessionId);
 
             emailVerificationRepository.Update(verification);
             await refreshTokenRepository.AddAsync(token, cancellationToken);

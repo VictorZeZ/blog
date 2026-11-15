@@ -18,6 +18,9 @@ namespace blog.Api.Common
             User.Identity?.IsAuthenticated == true ? Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!)
             : null;
 
+        protected Guid? CurrentSessionIdOrNull =>
+            Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sid), out var sessionId) ? sessionId : null;
+
         protected string CurrentUserRole =>
             User.FindFirstValue(ClaimTypes.Role)!;
     }

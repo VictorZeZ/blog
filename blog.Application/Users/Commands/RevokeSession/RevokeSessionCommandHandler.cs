@@ -1,7 +1,7 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Exceptions;
 using blog.Domain.Tokens.Repository;
-using blog.Domain.Tokens.Types;
+using blog.Domain.Users.Types;
 using MediatR;
 
 namespace blog.Application.Users.Commands.RevokeSession
@@ -10,19 +10,24 @@ namespace blog.Application.Users.Commands.RevokeSession
     {
         public async Task<RevokeSessionResponse> Handle(RevokeSessionCommand request, CancellationToken cancellationToken)
         {
-            var token = await refreshTokenRepository.GetByIdAsync(new RefreshTokenId(request.SessionId), cancellationToken);
-            if (token is null)
-                throw new NotFoundException("RefreshToken", request.SessionId);
+            var activeTokens = await refreshTokenRepository.GetActiveByUserIdAsync(new UserId(request.ActorId), cancellationToken);
 
-            if (token.UserId.Value != request.ActorId)
-                throw new ForbiddenException("revoke_session");
+            var sessionTokens = activeTokens
+                .Where(t => t.SessionId.Value == request.SessionId)
+                .ToList();
 
-            if (!token.IsValid())
-                throw new ExpiredException("RefreshToken");
+            if (sessionTokens.Count == 0)
+                throw new NotFoundException("Session", request.SessionId);
 
-            token.Revoke();
+            if (request.SessionId == request.CurrentSessionId)
+                throw new ForbiddenException("revoke_current_session");
 
-            refreshTokenRepository.Update(token);
+            foreach (var token in sessionTokens)
+            {
+                token.Revoke();
+                refreshTokenRepository.Update(token);
+            }
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new RevokeSessionResponse { Success = true };

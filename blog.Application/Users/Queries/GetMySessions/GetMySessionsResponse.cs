@@ -4,6 +4,7 @@
     {
         public Guid Id { get; init; }
         public string DeviceInfo { get; init; } = string.Empty;
+        public bool IsCurrent { get; init; }
         public DateTime CreatedAt { get; init; }
         public DateTime ExpiresAt { get; init; }
     }

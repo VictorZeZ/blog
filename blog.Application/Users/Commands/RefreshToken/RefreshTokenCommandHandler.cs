@@ -32,7 +32,7 @@ namespace blog.Application.Users.Commands.RefreshToken
             var newRefreshTokenHash = tokenHasher.Hash(newRefreshToken);
             var rotated = token.Rotate(newRefreshTokenHash, request.DeviceInfo, jwtSettings.Value.RefreshTokenExpiryDays);
 
-            var accessToken = jwtService.GenerateAccessToken(user);
+            var accessToken = jwtService.GenerateAccessToken(user, rotated.SessionId);
 
             refreshTokenRepository.Update(token);
             await refreshTokenRepository.AddAsync(rotated, cancellationToken);

@@ -1,5 +1,6 @@
 ﻿using blog.Domain.Common.Interfaces;
 using blog.Domain.Common.Settings;
+using blog.Domain.Tokens.Types;
 using blog.Domain.Users.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -14,7 +15,7 @@ namespace blog.Infrastructure.Services
     {
         private readonly JwtSettings _settings = settings.Value;
 
-        public string GenerateAccessToken(User user)
+        public string GenerateAccessToken(User user, SessionId sessionId)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -24,6 +25,7 @@ namespace blog.Infrastructure.Services
                 [JwtRegisteredClaimNames.Sub] = user.Id.Value.ToString(),
                 [JwtRegisteredClaimNames.Email] = user.Email,
                 [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
+                [JwtRegisteredClaimNames.Sid] = sessionId.Value.ToString(),
                 [ClaimTypes.Role] = user.Level.ToString()
             };
 

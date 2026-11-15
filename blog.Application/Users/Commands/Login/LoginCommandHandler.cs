@@ -72,7 +72,6 @@ namespace blog.Application.Users.Commands.Login
                 };
             }
 
-            var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();
             var refreshTokenHash = tokenHasher.Hash(refreshToken);
 
@@ -81,6 +80,8 @@ namespace blog.Application.Users.Commands.Login
                 user.Id,
                 request.DeviceInfo,
                 jwtSettings.Value.RefreshTokenExpiryDays);
+
+            var accessToken = jwtService.GenerateAccessToken(user, token.SessionId);
 
             await refreshTokenRepository.AddAsync(token, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);

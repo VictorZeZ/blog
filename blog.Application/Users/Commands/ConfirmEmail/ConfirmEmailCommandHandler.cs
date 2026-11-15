@@ -44,11 +44,11 @@ namespace blog.Application.Users.Commands.ConfirmEmail
             verification.MarkAsVerified();
             user.ConfirmEmail();
 
-            var accessToken = jwtService.GenerateAccessToken(user);
             var refreshToken = jwtService.GenerateRefreshToken();
             var refreshTokenHash = hasher.Hash(refreshToken);
 
             var token = new RefreshTokenEntity(refreshTokenHash, user.Id, request.DeviceInfo, jwtSettings.Value.RefreshTokenExpiryDays);
+            var accessToken = jwtService.GenerateAccessToken(user, token.SessionId);
 
             emailVerificationRepository.Update(verification);
             userRepository.Update(user);

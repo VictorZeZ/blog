@@ -6,5 +6,6 @@ namespace blog.Application.Users.Commands.RevokeSession
     {
         public Guid ActorId { get; init; }
         public Guid SessionId { get; init; }
+        public Guid? CurrentSessionId { get; init; }
     }
 }

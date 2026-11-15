@@ -73,7 +73,11 @@ namespace blog.Api.Controllers
         [HttpGet("sessions")]
         public async Task<IActionResult> GetMySessions(CancellationToken ct)
         {
-            var query = new GetMySessionsQuery { ActorId = CurrentUserId };
+            var query = new GetMySessionsQuery
+            {
+                ActorId = CurrentUserId,
+                CurrentSessionId = CurrentSessionIdOrNull
+            };
 
             var result = await Mediator.Send(query, ct);
             return Ok(result);
@@ -85,7 +89,8 @@ namespace blog.Api.Controllers
             var command = new RevokeSessionCommand
             {
                 ActorId = CurrentUserId,
-                SessionId = sessionId
+                SessionId = sessionId,
+                CurrentSessionId = CurrentSessionIdOrNull
             };
 
             var result = await Mediator.Send(command, ct);

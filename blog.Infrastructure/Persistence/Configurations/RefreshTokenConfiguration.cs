@@ -39,6 +39,13 @@ namespace blog.Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(512);
 
+            builder.Property(x => x.SessionId)
+                .HasConversion(
+                    v => v.Value,
+                    v => new SessionId(v))
+                .HasColumnType("uuid")
+                .IsRequired();
+
             builder.Property(x => x.UserId)
                 .HasConversion(
                     v => v.Value,
