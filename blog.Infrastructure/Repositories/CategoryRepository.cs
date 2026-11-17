@@ -1,9 +1,15 @@
 ﻿using blog.Domain.Categories.Common;
 using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Enums;
 using blog.Domain.Categories.Repository;
 using blog.Domain.Categories.Types;
+using blog.Domain.Common;
+using blog.Domain.Common.Enum;
 using blog.Domain.Posts.Common;
+using blog.Domain.Posts.Entities;
+using blog.Domain.Posts.Enums;
 using blog.Infrastructure.Persistence;
+using blog.Infrastructure.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace blog.Infrastructure.Repositories
@@ -74,6 +80,54 @@ namespace blog.Infrastructure.Repositories
 
             return days;
         }
+
+        public async Task<PagedResult<CategoryWithPostCount>> GetAllWithPostCountAsync(PagedRequest paging, CategorySortBy sortBy, TriStateFilter deleted, IReadOnlyCollection<PostStatus> postStatuses, CancellationToken ct = default)
+        {
+            var categories = deleted switch
+            {
+                TriStateFilter.Yes => context.Categories.Where(x => x.IsDeleted),
+                TriStateFilter.No => context.Categories.Where(x => !x.IsDeleted),
+                _ => context.Categories.AsQueryable()
+            };
+
+            IQueryable<Post> posts = context.Posts;
+            if (postStatuses.Count > 0)
+                posts = posts.Where(x => postStatuses.Contains(x.Status));
+
+            var totalCount = await categories.CountAsync(ct);
+
+            var counted = categories.Select(x => new
+            {
+                Category = x,
+                PostsCount = posts.Count(p => p.CategoryId == x.Id)
+            });
+
+            var sorted = sortBy switch
+            {
+                CategorySortBy.Oldest => counted.OrderBy(x => x.Category.CreatedAt).ThenBy(x => x.Category.Id),
+                CategorySortBy.NameAscending => counted.OrderBy(x => x.Category.Name).ThenBy(x => x.Category.Id),
+                CategorySortBy.NameDescending => counted.OrderByDescending(x => x.Category.Name).ThenByDescending(x => x.Category.Id),
+                CategorySortBy.MostPosts => counted.OrderByDescending(x => x.PostsCount).ThenByDescending(x => x.Category.Id),
+                CategorySortBy.FewestPosts => counted.OrderBy(x => x.PostsCount).ThenBy(x => x.Category.Id),
+                _ => counted.OrderByDescending(x => x.Category.CreatedAt).ThenByDescending(x => x.Category.Id)
+            };
+
+            var items = await sorted
+                .ApplyPaging(paging)
+                .Select(x => new CategoryWithPostCount(
+                    x.Category.Id.Value,
+                    x.Category.Name,
+                    x.Category.Slug,
+                    x.Category.IsDeleted,
+                    x.Category.DeletedAt,
+                    x.Category.CreatedAt,
+                    x.PostsCount))
+                .ToListAsync(ct);
+
+            return new PagedResult<CategoryWithPostCount>(items, totalCount, paging.Page, paging.PageSize);
+        }
+
+
 
         public async Task AddAsync(Category category, CancellationToken ct = default)
             => await context.Categories.AddAsync(category, ct);

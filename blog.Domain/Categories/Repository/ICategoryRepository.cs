@@ -1,7 +1,11 @@
 ﻿using blog.Domain.Categories.Common;
 using blog.Domain.Categories.Entities;
+using blog.Domain.Categories.Enums;
 using blog.Domain.Categories.Types;
+using blog.Domain.Common;
+using blog.Domain.Common.Enum;
 using blog.Domain.Posts.Common;
+using blog.Domain.Posts.Enums;
 
 namespace blog.Domain.Categories.Repository
 {
@@ -15,6 +19,7 @@ namespace blog.Domain.Categories.Repository
         Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
         Task<CategoryOverviewCounts> GetOverviewCountsAsync(CancellationToken ct = default);
         Task<IReadOnlyList<CategoryDailyCount>> GetDailyActivityReportAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
+        Task<PagedResult<CategoryWithPostCount>> GetAllWithPostCountAsync(PagedRequest paging, CategorySortBy sortBy, TriStateFilter deleted, IReadOnlyCollection<PostStatus> postStatuses, CancellationToken ct = default);
 
         // Write
         Task AddAsync(Category category, CancellationToken ct = default);
