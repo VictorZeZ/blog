@@ -1,6 +1,8 @@
 ﻿using blog.Api.Common;
+using blog.Api.DTOs.Categories;
 using blog.Api.DTOs.Posts;
 using blog.Api.DTOs.Users;
+using blog.Application.Categories.Queries.GetCategories;
 using blog.Application.Posts.Commands.ChangePostStatus;
 using blog.Application.Posts.Queries.GetAllPosts;
 using blog.Application.Posts.Queries.GetPendingApprovalPosts;
@@ -76,6 +78,22 @@ namespace blog.Api.Controllers
             };
 
             var result = await Mediator.Send(command, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories([FromQuery] GetCategoriesRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
+        {
+            var query = new GetCategoriesQuery
+            {
+                ActorId = CurrentUserId,
+                Paging = paging,
+                SortBy = request.SortBy,
+                Deleted = request.Deleted,
+                PostStatuses = request.PostStatuses
+            };
+
+            var result = await Mediator.Send(query, ct);
             return Ok(result);
         }
 
