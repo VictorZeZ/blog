@@ -7,6 +7,8 @@ using blog.Application.Categories.Queries.GetAllCategories;
 using blog.Application.Categories.Queries.GetCategoryBySlug;
 using blog.Application.Categories.Queries.GetDeletedCategories;
 using blog.Application.Categories.Queries.RestoreCategory;
+using blog.Application.Categories.Queries.SearchCategories;
+using blog.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +22,24 @@ namespace blog.Api.Controllers
         public async Task<IActionResult> GetAllCategories(CancellationToken ct)
         {
             var result = await Mediator.Send(new GetAllCategoriesQuery(), ct);
+            return Ok(result);
+        }
+
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchCategories([FromQuery] GetCategoriesRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
+        {
+            var query = new SearchCategoriesQuery
+            {
+                Term = request.Term ?? string.Empty,
+                ActorId = CurrentUserIdOrNull,
+                Paging = paging,
+                SortBy = request.SortBy,
+                Deleted = request.Deleted,
+                PostStatuses = request.PostStatuses
+            };
+
+            var result = await Mediator.Send(query, ct);
             return Ok(result);
         }
 

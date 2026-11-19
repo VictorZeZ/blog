@@ -1,13 +1,11 @@
 ﻿using blog.Domain.Common;
-using blog.Domain.Posts.Enums;
+using blog.Domain.Posts.Common;
 using FluentValidation;
 
 namespace blog.Application.Categories.Queries.GetCategories
 {
     public class GetCategoriesQueryValidator : AbstractValidator<GetCategoriesQuery>
     {
-        private static readonly int MaxPostStatuses = Enum.GetValues<PostStatus>().Length;
-
         public GetCategoriesQueryValidator()
         {
             RuleFor(x => x.ActorId)
@@ -26,9 +24,7 @@ namespace blog.Application.Categories.Queries.GetCategories
                 .IsInEnum();
 
             RuleFor(x => x.PostStatuses)
-                .NotNull()
-                .Must(statuses => statuses is null || statuses.Count <= MaxPostStatuses)
-                    .WithMessage($"No more than {MaxPostStatuses} post statuses can be provided.");
+                .ApplyPostStatusListRules();
 
             RuleForEach(x => x.PostStatuses)
                 .IsInEnum();
