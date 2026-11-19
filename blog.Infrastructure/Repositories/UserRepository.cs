@@ -80,7 +80,7 @@ namespace blog.Infrastructure.Repositories
 
         public async Task<PagedResult<UserSearchResult>> SearchAsync(PagedRequest paging, string term, bool isElevatedActor, CancellationToken ct = default)
         {
-            var pattern = $"%{EscapeLikePattern(term)}%";
+            var pattern = LikePattern.Contains(term);
 
             var query = context.Users
                 .Where(x => !x.IsDeleted && !x.IsBanned);
@@ -235,13 +235,5 @@ namespace blog.Infrastructure.Repositories
                 _ => query
             };
         }
-
-        // Escapes LIKE/ILIKE wildcard characters in user-supplied search terms so that
-        // literal '%' or '_' in a search term is matched as-is rather than as a pattern.
-        private static string EscapeLikePattern(string term)
-            => term
-                .Replace("\\", "\\\\")
-                .Replace("%", "\\%")
-                .Replace("_", "\\_");
     }
 }

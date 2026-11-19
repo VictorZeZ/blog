@@ -9,5 +9,6 @@ namespace blog.Api.DTOs.Categories
         public CategorySortBy SortBy { get; init; } = CategorySortBy.Newest;
         public TriStateFilter Deleted { get; init; } = TriStateFilter.All;
         public List<PostStatus> PostStatuses { get; init; } = [];
+        public string? Term { get; init; }
     }
 }

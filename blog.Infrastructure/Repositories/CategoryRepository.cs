@@ -81,7 +81,7 @@ namespace blog.Infrastructure.Repositories
             return days;
         }
 
-        public async Task<PagedResult<CategoryWithPostCount>> GetAllWithPostCountAsync(PagedRequest paging, CategorySortBy sortBy, TriStateFilter deleted, IReadOnlyCollection<PostStatus> postStatuses, CancellationToken ct = default)
+        public async Task<PagedResult<CategoryWithPostCount>> GetAllWithPostCountAsync(PagedRequest paging, string? term, CategorySortBy sortBy, TriStateFilter deleted, IReadOnlyCollection<PostStatus> postStatuses, CancellationToken ct = default)
         {
             var categories = deleted switch
             {
@@ -89,6 +89,12 @@ namespace blog.Infrastructure.Repositories
                 TriStateFilter.No => context.Categories.Where(x => !x.IsDeleted),
                 _ => context.Categories.AsQueryable()
             };
+
+            if (!string.IsNullOrWhiteSpace(term))
+            {
+                var pattern = LikePattern.Contains(term);
+                categories = categories.Where(x => EF.Functions.ILike(x.Name, pattern));
+            }
 
             IQueryable<Post> posts = context.Posts;
             if (postStatuses.Count > 0)

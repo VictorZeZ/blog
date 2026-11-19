@@ -13,6 +13,9 @@ namespace blog.Application.Categories.Queries.GetCategories
             RuleFor(x => x.ActorId)
                 .NotEmpty();
 
+            RuleFor(x => x.Term)
+                .MaximumLength(256);
+
             RuleFor(x => x.Paging)
                 .SetValidator(new PagedRequestValidator());
 

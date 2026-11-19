@@ -87,6 +87,7 @@ namespace blog.Api.Controllers
             var query = new GetCategoriesQuery
             {
                 ActorId = CurrentUserId,
+                Term = request.Term,
                 Paging = paging,
                 SortBy = request.SortBy,
                 Deleted = request.Deleted,
