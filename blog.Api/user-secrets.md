@@ -272,6 +272,7 @@ The following settings ship with working defaults in `appsettings.json` / `appse
 | `AccountLockoutSettings` | `MaxFailedAttempts`, `LockoutDurationMinutes`, `FailedAttemptWindowMinutes` — controls account lockout for login and password-confirmation actions. |
 | `EmailVerificationSettings` | Expiry minutes and max attempts per OTP purpose (registration, login verification, change email, reset password, confirm new email). |
 | `Cors:AllowedOrigins` | Origins allowed to call the API from a browser. Empty by default. |
+| `PasswordHashingSettings` | Argon2 variant (`Argon2i`/`Argon2id`) and cost parameters for password hashing: `TimeCost`, `MemoryCostKiB`, `Parallelism`, `HashLength`, `SaltLength`. Existing hashes keep working after a change because Argon2 stores its parameters inside each hash. |
 
 ## Production Considerations
 
