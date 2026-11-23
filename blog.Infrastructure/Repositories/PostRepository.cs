@@ -27,7 +27,7 @@ namespace blog.Infrastructure.Repositories
                 .Include(x => x.Category)
                 .FirstOrDefaultAsync(x => x.Slug == slug, ct);
 
-        public async Task<PagedResult<PostSummaryResponse>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, CancellationToken ct = default)
+        public async Task<PagedResult<PostSummaryResponse>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, string? term = null, CategoryId? categoryId = null, UserId? authorId = null, UserId? visibleDraftsAuthorId = null, CancellationToken ct = default)
         {
             var query = context.Posts.AsQueryable();
 
@@ -41,7 +41,20 @@ namespace blog.Infrastructure.Repositories
             };
 
             if (!includeDrafts)
-                query = query.Where(x => x.Status != PostStatus.Draft);
+            {
+                query = visibleDraftsAuthorId is { } draftAuthorId
+                    ? query.Where(x => x.Status != PostStatus.Draft || x.AuthorId == draftAuthorId)
+                    : query.Where(x => x.Status != PostStatus.Draft);
+            }
+
+            if (authorId is { } author)
+                query = query.Where(x => x.AuthorId == author);
+
+            if (categoryId is { } category)
+                query = query.Where(x => x.CategoryId == category);
+
+            if (!string.IsNullOrWhiteSpace(term))
+                query = query.WhereMatchesSearchTerm(term);
 
             return await query.ToSummaryPagedResultAsync(paging, sortBy, ct);
         }
@@ -118,8 +131,8 @@ namespace blog.Infrastructure.Repositories
 
         public async Task<PagedResult<PostSummaryResponse>> SearchAsync(PagedRequest paging, string term, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default)
             => await context.Posts
-                .Where(x => x.Status == PostStatus.Published &&
-                            x.SearchVector.Matches(EF.Functions.PlainToTsQuery("english", term)))
+                .Where(x => x.Status == PostStatus.Published)
+                .WhereMatchesSearchTerm(term)
                 .ToSummaryPagedResultAsync(paging, sortBy, ct);
 
         public async Task<IReadOnlyList<PostStatusDailyCount>> GetDailyStatusReportAsync(DateOnly from, DateOnly to, CategoryId? categoryId, UserId? authorId, CancellationToken ct = default)

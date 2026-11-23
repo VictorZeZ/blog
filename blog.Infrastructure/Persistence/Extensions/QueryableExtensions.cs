@@ -58,5 +58,8 @@ namespace blog.Infrastructure.Persistence.Extensions
             PostSortBy.MostViewed => query.OrderByDescending(x => x.ViewCount).ThenByDescending(x => x.Id),
             _ => query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id)
         };
+
+        public static IQueryable<Post> WhereMatchesSearchTerm(this IQueryable<Post> query, string term)
+            => query.Where(x => x.SearchVector.Matches(EF.Functions.PlainToTsQuery("english", term)));
     }
 }

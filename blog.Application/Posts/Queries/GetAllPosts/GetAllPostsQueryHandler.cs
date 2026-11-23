@@ -21,7 +21,7 @@ namespace blog.Application.Posts.Queries.GetAllPosts
             if (request.Filter == PostFilter.Draft && !actor.IsOwner())
                 throw new ForbiddenException("view_all_drafts");
 
-            return await postRepository.GetAllAsync(request.Paging, request.SortBy, request.Filter, includeDrafts: actor.IsOwner(), cancellationToken);
+            return await postRepository.GetAllAsync(request.Paging, request.SortBy, request.Filter, includeDrafts: actor.IsOwner(), ct: cancellationToken);
         }
     }
 }

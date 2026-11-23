@@ -13,8 +13,7 @@ namespace blog.Domain.Posts.Repository
         // Read
         Task<Post?> GetByIdAsync(PostId id, CancellationToken ct = default);
         Task<Post?> GetBySlugAsync(string slug, CancellationToken ct = default);
-        Task<PagedResult<PostSummaryResponse>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, CancellationToken ct = default);
-        Task<PagedResult<PostSummaryResponse>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
+        Task<PagedResult<PostSummaryResponse>> GetAllAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, PostFilter filter = PostFilter.All, bool includeDrafts = true, string? term = null, CategoryId? categoryId = null, UserId? authorId = null, UserId? visibleDraftsAuthorId = null, CancellationToken ct = default); Task<PagedResult<PostSummaryResponse>> GetAllPublishedAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
         Task<PagedResult<PostSummaryResponse>> GetByAuthorAsync(PagedRequest paging, UserId authorId, PostSortBy sortBy = PostSortBy.Newest, bool publishedOnly = true, bool includeDrafts = false, CancellationToken ct = default);
         Task<PagedResult<PostSummaryResponse>> GetPendingApprovalAsync(PagedRequest paging, PostSortBy sortBy = PostSortBy.Newest, CancellationToken ct = default);
         Task<PagedResult<PostSummaryResponse>> GetByTagAsync(PagedRequest paging, List<string> tags, PostSortBy sortBy = PostSortBy.Newest, PostTagGroupingMode groupingMode = PostTagGroupingMode.None, CancellationToken ct = default);
