@@ -16,6 +16,7 @@
                     {
                         policy
                             .WithOrigins(allowedOrigins)
+                            .WithExposedHeaders("Retry-After")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials();
