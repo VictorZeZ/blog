@@ -2,10 +2,12 @@
 using blog.Api.DTOs.Dashboard;
 using blog.Application.Categories.Queries.GetCategoriesDailyReport;
 using blog.Application.Dashboard.Queries.GetDashboardOverview;
+using blog.Application.Posts.Queries.GetDashboardPosts;
 using blog.Application.Posts.Queries.GetPostsDailyReport;
 using blog.Application.Users.Commands.RevokeSession;
 using blog.Application.Users.Queries.GetMySessions;
 using blog.Application.Users.Queries.GetUsersDailyReport;
+using blog.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +34,24 @@ namespace blog.Api.Controllers
                 ActorId = CurrentUserId,
                 From = request.From,
                 To = request.To,
+                CategoryId = request.CategoryId,
+                AuthorId = request.AuthorId
+            };
+
+            var result = await Mediator.Send(query, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("posts/list")]
+        public async Task<IActionResult> GetDashboardPosts([FromQuery] GetDashboardPostsRequest request, [FromQuery] PagedRequest paging, CancellationToken ct)
+        {
+            var query = new GetDashboardPostsQuery
+            {
+                ActorId = CurrentUserId,
+                Term = request.Term,
+                Paging = paging,
+                SortBy = request.SortBy,
+                Filter = request.Filter,
                 CategoryId = request.CategoryId,
                 AuthorId = request.AuthorId
             };
