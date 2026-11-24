@@ -3,7 +3,6 @@ using blog.Domain.Categories.Types;
 using blog.Domain.Common.Reports;
 using blog.Domain.Exceptions;
 using blog.Domain.Posts.Repository;
-using blog.Domain.Users.Entities;
 using blog.Domain.Users.Extensions;
 using blog.Domain.Users.Repository;
 using blog.Domain.Users.Types;
@@ -21,7 +20,7 @@ namespace blog.Application.Posts.Queries.GetPostsDailyReport
 
             actor.EnsureActive();
 
-            var authorId = await ResolveAuthorIdAsync(actor, request.AuthorId, cancellationToken);
+            var authorId = await userRepository.ResolveAuthorScopeAsync(actor, request.AuthorId, cancellationToken);
 
             CategoryId? categoryId = null;
             if (request.CategoryId is not null)
@@ -60,22 +59,6 @@ namespace blog.Application.Posts.Queries.GetPostsDailyReport
                     TotalCount = d.DraftCount + d.PendingApprovalCount + d.PublishedCount + d.RejectedCount
                 }).ToList()
             };
-        }
-
-        private async Task<UserId?> ResolveAuthorIdAsync(User actor, Guid? requestedAuthorId, CancellationToken ct)
-        {
-            if (!actor.IsElevated())
-                return actor.Id;
-
-            if (requestedAuthorId is null)
-                return null;
-
-            var authorId = new UserId(requestedAuthorId.Value);
-            var author = await userRepository.GetByIdAsync(authorId, ct);
-            if (author is null)
-                throw new NotFoundException("User", requestedAuthorId.Value);
-
-            return authorId;
         }
     }
 }
