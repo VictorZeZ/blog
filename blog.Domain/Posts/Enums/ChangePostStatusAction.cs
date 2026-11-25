@@ -3,6 +3,8 @@
     public enum ChangePostStatusAction
     {
         Approve = 0,
-        Reject = 1
+        Reject = 1,
+        ReturnToDraft = 2,
+        ReturnToPending = 3
     }
 }

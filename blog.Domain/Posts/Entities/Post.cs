@@ -90,6 +90,23 @@ namespace blog.Domain.Posts.Entities
             MarkAsUpdated();
         }
 
+        public void ReturnToDraft()
+        {
+            if (Status == PostStatus.Draft)
+                throw new InvalidStateException("Post", Status.ToString(), "PendingApproval, Published or Rejected");
+
+            Status = PostStatus.Draft;
+            MarkAsUpdated();
+        }
+
+        public void ReturnToPending()
+        {
+            EnsureNotDraft();
+
+            Status = PostStatus.PendingApproval;
+            MarkAsUpdated();
+        }
+
         private void EnsureNotDraft()
         {
             if (Status == PostStatus.Draft)

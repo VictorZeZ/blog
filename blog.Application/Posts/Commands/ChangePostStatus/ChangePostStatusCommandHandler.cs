@@ -3,14 +3,26 @@ using blog.Domain.Exceptions;
 using blog.Domain.Posts.Enums;
 using blog.Domain.Posts.Repository;
 using blog.Domain.Posts.Types;
+using blog.Domain.Users.Extensions;
+using blog.Domain.Users.Repository;
+using blog.Domain.Users.Types;
 using MediatR;
 
 namespace blog.Application.Posts.Commands.ChangePostStatus
 {
-    public class ChangePostStatusCommandHandler(IPostRepository postRepository, IUnitOfWork unitOfWork) : IRequestHandler<ChangePostStatusCommand, ChangePostStatusResponse>
+    public class ChangePostStatusCommandHandler(IUserRepository userRepository, IPostRepository postRepository, IUnitOfWork unitOfWork) : IRequestHandler<ChangePostStatusCommand, ChangePostStatusResponse>
     {
         public async Task<ChangePostStatusResponse> Handle(ChangePostStatusCommand request, CancellationToken cancellationToken)
         {
+            if (request.Action == ChangePostStatusAction.ReturnToDraft)
+            {
+                var actor = await userRepository.GetByIdAsync(new UserId(request.ActorId), cancellationToken)
+                    ?? throw new NotFoundException("User", request.ActorId);
+
+                if (!actor.IsOwner())
+                    throw new ForbiddenException("return_post_to_draft");
+            }
+
             var post = await postRepository.GetByIdAsync(new PostId(request.PostId), cancellationToken);
             if (post is null)
                 throw new NotFoundException("Post", request.PostId);
@@ -19,6 +31,8 @@ namespace blog.Application.Posts.Commands.ChangePostStatus
             {
                 ChangePostStatusAction.Approve => PostStatus.Published,
                 ChangePostStatusAction.Reject => PostStatus.Rejected,
+                ChangePostStatusAction.ReturnToDraft => PostStatus.Draft,
+                ChangePostStatusAction.ReturnToPending => PostStatus.PendingApproval,
                 _ => throw new UnsupportedOperationException(request.Action.ToString())
             };
 
@@ -32,6 +46,12 @@ namespace blog.Application.Posts.Commands.ChangePostStatus
                     break;
                 case ChangePostStatusAction.Reject:
                     post.Reject();
+                    break;
+                case ChangePostStatusAction.ReturnToDraft:
+                    post.ReturnToDraft();
+                    break;
+                case ChangePostStatusAction.ReturnToPending:
+                    post.ReturnToPending();
                     break;
             }
 
